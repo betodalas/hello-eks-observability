@@ -7,6 +7,7 @@ on:
       - "betodalas-terraform/infra/**/*.hcl"
       - "betodalas-terraform/infra/**/*.tfvars"
       - ".github/workflows/terraform.yml"
+      - ".github/workflows/README.md"
   push:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - "betodalas-terraform/infra/**/*.hcl"
       - "betodalas-terraform/infra/**/*.tfvars"
       - ".github/workflows/terraform.yml"
+      - ".github/workflows/README.md"
 permissions:
   contents: read
   id-token: write
