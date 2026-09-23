@@ -5,7 +5,7 @@ sem armazenar access keys no GitHub.
 
 ## Preparação única
 
-1. Execute o Terraform em `bootstrap/` localmente, com credenciais AWS
+1. Execute o Terraform em `betodalas-terraform/bootstrap/` localmente, com credenciais AWS
    administrativas. Esse passo cria o bucket S3 do state e a role
    `hello-observability-terraform-ci`.
 2. No GitHub, crie o Environment `production` e, de preferência, habilite
@@ -14,16 +14,17 @@ sem armazenar access keys no GitHub.
 
    - `AWS_REGION`: `us-east-1`
    - `AWS_TERRAFORM_ROLE_ARN`: ARN emitido por
-     `terraform -chdir=bootstrap output -raw terraform_ci_role_arn`
+     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_ci_role_arn`
    - `TF_STATE_BUCKET`: nome do bucket criado pelo bootstrap
    - `TF_STATE_KEY`: `eks/terraform.tfstate`
 
-O repositório usado no bootstrap deve ser exatamente o repositório que contém
+O O repositório usado no bootstrap deve ser exatamente o repositório que contém
 este workflow. O valor é validado pela trust policy do OIDC.
 
 ## Fluxo
 
-- Pull requests executam `fmt`, `validate` e `plan`; o resultado é publicado
+- Pull requests executam `fmt`, `validate` e `plan` em `betodalas-terraform/infra`;
+  o resultado é publicado
   em um comentário atualizável no próprio PR.
 - Pushes em `main` executam `plan` e depois aguardam a aprovação manual do
   Environment `production` antes de executar `apply`.
@@ -33,5 +34,5 @@ este workflow. O valor é validado pela trust policy do OIDC.
   no Terraform 1.10 ou posterior.
 
 Antes do primeiro `apply`, confira também os valores de
-`infra/terraform.tfvars`, especialmente `github_repo`,
+`betodalas-terraform/infra/terraform.tfvars`, especialmente `github_repo`,
 `admin_principal_arns` e `create_github_oidc_provider`.

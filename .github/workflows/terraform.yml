@@ -3,17 +3,17 @@ name: Terraform
 on:
   pull_request:
     paths:
-      - "infra/**/*.tf"
-      - "infra/**/*.hcl"
-      - "infra/**/*.tfvars"
+      - "betodalas-terraform/infra/**/*.tf"
+      - "betodalas-terraform/infra/**/*.hcl"
+      - "betodalas-terraform/infra/**/*.tfvars"
       - ".github/workflows/terraform.yml"
   push:
     branches:
       - main
     paths:
-      - "infra/**/*.tf"
-      - "infra/**/*.hcl"
-      - "infra/**/*.tfvars"
+      - "betodalas-terraform/infra/**/*.tf"
+      - "betodalas-terraform/infra/**/*.hcl"
+      - "betodalas-terraform/infra/**/*.tfvars"
       - ".github/workflows/terraform.yml"
 permissions:
   contents: read
@@ -27,7 +27,7 @@ concurrency:
 env:
   TF_IN_AUTOMATION: true
   TF_INPUT: false
-  TF_WORKING_DIR: infra
+  TF_WORKING_DIR: betodalas-terraform/infra
   TF_VERSION: "1.10.5"
   AWS_REGION: ${{ vars.AWS_REGION }}
 
@@ -82,7 +82,7 @@ jobs:
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         env:
-          PLAN_FILE: ${{ github.workspace }}/infra/plan.txt
+          PLAN_FILE: ${{ github.workspace }}/betodalas-terraform/infra/plan.txt
         with:
           script: |
             const fs = require("fs");
@@ -136,8 +136,8 @@ jobs:
         with:
           name: terraform-plan-${{ github.run_id }}
           path: |
-            infra/tfplan
-            infra/plan.txt
+            betodalas-terraform/infra/tfplan
+            betodalas-terraform/infra/plan.txt
           retention-days: 7
 
   apply:
