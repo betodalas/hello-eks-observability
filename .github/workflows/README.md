@@ -30,6 +30,9 @@ este workflow. O valor é validado pela trust policy do OIDC.
   Environment `production` antes de executar `apply`.
 - O `apply` só pode assumir a role através do Environment `production`; a
   aprovação do comentário do plan, por si só, não concede acesso à AWS.
+
+Ao abrir ou atualizar um PR, aguarde o job de plan terminar e confira o
+comentário `Terraform plan` antes de fazer o merge.
 - O state é armazenado no S3 e usa o lock nativo (`use_lockfile`), disponível
   no Terraform 1.10 ou posterior.
 
