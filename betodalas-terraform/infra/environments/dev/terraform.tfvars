@@ -1,4 +1,5 @@
-# Rede: a ordem das listas corresponde às Availability Zones.
+# Development environment. Keep these values compatible with the original infra state.
+project     = "hello-observability"
 github_repo = "betodalas/hello-eks-observability"
 
 availability_zones = ["us-east-1a", "us-east-1b"]
@@ -6,12 +7,9 @@ vpc_cidr           = "10.20.0.0/16"
 private_subnets    = ["10.20.0.0/20", "10.20.16.0/20"]
 public_subnets     = ["10.20.100.0/24", "10.20.101.0/24"]
 
-# Laboratório/Free Tier. Para produção, aumente capacidade e restrinja os CIDRs.
-cluster_endpoint_public_access  = true
-cluster_endpoint_private_access = true
-cluster_endpoint_public_access_cidrs = [
-  "0.0.0.0/0"
-]
+cluster_endpoint_public_access       = true
+cluster_endpoint_private_access      = true
+cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
 
 node_groups = {
   default = {

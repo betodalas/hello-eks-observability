@@ -10,6 +10,12 @@ variable "project" {
   default     = "hello-observability"
 }
 
+variable "terraform_role_project" {
+  description = "Prefixo do projeto usado nos nomes das roles OIDC criadas pelo bootstrap."
+  type        = string
+  default     = "hello-observability"
+}
+
 variable "github_repo" {
   description = "Repositório GitHub no formato owner/repo (confiança OIDC da role de deploy da app)"
   type        = string

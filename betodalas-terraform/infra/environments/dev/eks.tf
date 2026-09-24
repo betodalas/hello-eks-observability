@@ -1,5 +1,5 @@
 module "eks" {
-  source = "./modules/eks"
+  source = "../../modules/eks"
 
   cluster_name                         = local.name
   cluster_version                      = var.kubernetes_version
