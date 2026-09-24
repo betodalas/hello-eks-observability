@@ -43,7 +43,7 @@ jobs:
               - "betodalas-terraform/**"
 
   plan:
-    name: Plan (${{ github.base_ref }})
+    name: Terraform plan
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.terraform == 'true'
     runs-on: ubuntu-latest
@@ -95,7 +95,7 @@ jobs:
           retention-days: 7
 
   apply:
-    name: Apply (${{ github.ref_name }})
+    name: Terraform apply
     needs: changes
     if: github.event_name == 'push' && needs.changes.outputs.terraform == 'true'
     runs-on: ubuntu-latest
