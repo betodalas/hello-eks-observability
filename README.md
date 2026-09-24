@@ -20,7 +20,7 @@ workflow de aplicação constrói [app/](./app/), publica no ECR e altera
 reconciliação automática do Argo CD.
 
 O ambiente de produção começa com seis `t3.micro`. O Karpenter usa instâncias
-`t3.small`/`t3.medium` sob demanda e tem limite de 2 vCPUs. Os requests do
+`t3.small`/`t3.medium` Spot e tem limite de 2 vCPUs. Os requests do
 Argo, Prometheus e Grafana foram reduzidos para caber no ambiente de
 demonstração. Em produção, aumente capacidade e retenção.
 
