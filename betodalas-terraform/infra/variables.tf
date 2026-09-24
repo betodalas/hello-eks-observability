@@ -26,6 +26,15 @@ variable "admin_principal_arns" {
   default     = []
 }
 
+variable "iam_users" {
+  description = "Usuários IAM a criar e autorizar como administradores do cluster. Não cria chaves de acesso."
+  type = map(object({
+    path = optional(string, "/")
+    tags = optional(map(string), {})
+  }))
+  default = {}
+}
+
 variable "kubernetes_version" {
   description = "Versão do Kubernetes no EKS (confira as que estão em suporte padrão)"
   type        = string

@@ -56,3 +56,30 @@ Antes do primeiro `apply`, confira também os valores de
 `betodalas-terraform/infra/terraform.tfvars`, especialmente `github_repo`,
 e `admin_principal_arns`. Essa última é opcional: quando não informada, somente
 as roles do pipeline têm acesso administrativo ao cluster.
+
+## Organização do Terraform
+
+Os recursos da infraestrutura ficam separados em módulos locais dentro de
+`betodalas-terraform/infra/modules/`:
+
+- `vpc`: rede, subnets e NAT Gateway;
+- `eks`: cluster, node groups e EKS Access Entries. As permissões do cluster
+  ficam junto do cluster porque dependem da API do EKS;
+- `iam`: criação opcional de usuários IAM. Usuários declarados em `iam_users`
+  recebem uma Access Entry administrativa no EKS, mas o módulo não cria chaves
+  de acesso.
+
+Para criar um usuário IAM e permitir seu acesso administrativo ao cluster,
+adicione-o em `betodalas-terraform/infra/terraform.tfvars`:
+
+```hcl
+iam_users = {
+  roberto = {
+    tags = {
+      Owner = "roberto"
+    }
+  }
+}
+```
+
+Para usuários ou roles que já existem, continue usando `admin_principal_arns`.
