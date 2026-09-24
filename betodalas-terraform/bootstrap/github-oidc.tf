@@ -5,6 +5,18 @@ variable "github_repo" {
   type        = string
 }
 
+variable "github_owner_id" {
+  description = "ID numérico do owner no GitHub"
+  type        = string
+  default     = "1109865"
+}
+
+variable "github_repository_id" {
+  description = "ID numérico do repositório no GitHub"
+  type        = string
+  default     = "1384209664"
+}
+
 variable "create_github_oidc_provider" {
   description = "Use false se a conta já tiver o OIDC provider do GitHub"
   type        = bool
@@ -23,6 +35,9 @@ resource "aws_iam_openid_connect_provider" "github" {
 locals {
   github_oidc_provider_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : "arn:aws:iam::${data.aws_caller_identity.ci.account_id}:oidc-provider/token.actions.githubusercontent.com"
   state_bucket_arn         = aws_s3_bucket.tfstate.arn
+  github_owner             = split("/", var.github_repo)[0]
+  github_repository        = split("/", var.github_repo)[1]
+  github_oidc_repo         = "repo:${local.github_owner}@${var.github_owner_id}/${local.github_repository}@${var.github_repository_id}"
 }
 
 data "aws_iam_policy_document" "terraform_plan_trust" {
@@ -43,7 +58,10 @@ data "aws_iam_policy_document" "terraform_plan_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:pull_request"]
+      values = [
+        "${local.github_oidc_repo}:pull_request",
+        "repo:${var.github_repo}:pull_request",
+      ]
     }
   }
 }
@@ -66,7 +84,10 @@ data "aws_iam_policy_document" "terraform_apply_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:environment:production"]
+      values = [
+        "${local.github_oidc_repo}:environment:production",
+        "repo:${var.github_repo}:environment:production",
+      ]
     }
   }
 }

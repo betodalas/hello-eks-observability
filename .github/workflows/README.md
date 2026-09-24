@@ -9,6 +9,14 @@ sem armazenar access keys no GitHub.
    administrativas. Esse passo cria o bucket S3 do state e a role
    `hello-observability-terraform-plan` e
    `hello-observability-terraform-apply`.
+   Para o OIDC deste repositório, informe também os IDs numéricos:
+
+   ```bash
+   terraform -chdir=betodalas-terraform/bootstrap apply \
+     -var='github_repo=betodalas/hello-eks-observability' \
+     -var='github_owner_id=1109865' \
+     -var='github_repository_id=1384209664'
+   ```
 2. No GitHub, crie o Environment `production` e, de preferência, habilite
    aprovação obrigatória para o job de `apply`.
 3. Em **Repository variables** (não dentro do Environment), cadastre:
