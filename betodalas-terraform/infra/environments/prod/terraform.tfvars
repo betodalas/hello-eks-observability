@@ -2,6 +2,10 @@
 project     = "hello-observability-prod"
 github_repo = "betodalas/hello-eks-observability"
 
+admin_principal_arns = [
+  "arn:aws:iam::207131866724:user/terraform",
+]
+
 availability_zones = ["us-east-1a", "us-east-1b"]
 vpc_cidr           = "10.30.0.0/16"
 private_subnets    = ["10.30.0.0/20", "10.30.16.0/20"]
@@ -13,9 +17,9 @@ cluster_endpoint_public_access_cidrs = []
 
 node_groups = {
   default = {
-    instance_types = ["t3.large"]
-    min_size       = 2
-    desired_size   = 2
-    max_size       = 4
+    instance_types = ["t3.micro"]
+    min_size       = 1
+    desired_size   = 1
+    max_size       = 1
   }
 }
