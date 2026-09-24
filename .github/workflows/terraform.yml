@@ -3,6 +3,7 @@ name: Terraform
 on:
   pull_request:
     branches:
+      - main
       - dev
   push:
     branches:
@@ -44,7 +45,11 @@ jobs:
   plan:
     name: Plan (${{ matrix.environment }})
     needs: changes
-    if: github.event_name == 'pull_request' && needs.changes.outputs.terraform == 'true'
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.changes.outputs.terraform == 'true' &&
+      ((github.base_ref == 'dev' && matrix.environment == 'dev') ||
+      (github.base_ref == 'main' && matrix.environment == 'prod'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

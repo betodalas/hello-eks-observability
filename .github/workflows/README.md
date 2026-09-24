@@ -41,11 +41,13 @@ O bucket e `use_lockfile = true` permanecem em cada `backend.hcl`. Configure a
 mesma variável `TF_STATE_BUCKET` usada pelo bootstrap no GitHub. As roles do
 workflow continuam usando o prefixo `hello-observability` criado pelo
 bootstrap; o `project` de produção pode ser diferente porque
-`terraform_role_project` controla essa referência. O workflow faz plan de dev
-e prod em Pull Requests, aplica dev em pushes para a branch `dev` e aplica prod
-em pushes para `main`. Cada apply usa o diretório e o state do próprio
-ambiente. O apply de prod é protegido pelo Environment `production` e seus
-required reviewers; o apply de dev usa o Environment `development`.
+`terraform_role_project` controla essa referência. O workflow executa o plan
+somente para o ambiente correspondente ao destino do Pull Request: `dev` para
+PRs destinados a `dev` e `prod` para PRs destinados a `main`. Em pushes para
+`dev`, aplica somente `dev`; em pushes para `main`, aplica somente `prod`.
+Cada execução usa o diretório e o state do próprio ambiente. O apply de prod é
+protegido pelo Environment `production` e seus required reviewers; o apply de
+dev usa o Environment `development`.
 
 ## Fronteira entre Terraform e Argo CD
 
