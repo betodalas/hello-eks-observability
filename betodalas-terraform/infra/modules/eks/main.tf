@@ -23,7 +23,9 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
 
-  cluster_endpoint_public_access           = true
+  cluster_endpoint_public_access           = var.cluster_endpoint_public_access
+  cluster_endpoint_private_access          = var.cluster_endpoint_private_access
+  cluster_endpoint_public_access_cidrs     = var.cluster_endpoint_public_access_cidrs
   enable_cluster_creator_admin_permissions = false
 
   vpc_id     = var.vpc_id
@@ -38,16 +40,7 @@ module "eks" {
     }
   }
 
-  eks_managed_node_groups = {
-    default = {
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = var.node_instance_types
-      capacity_type  = "ON_DEMAND"
-      min_size       = var.node_min_size
-      desired_size   = var.node_desired_size
-      max_size       = var.node_max_size
-    }
-  }
+  eks_managed_node_groups = var.node_groups
 
   access_entries = merge(
     {

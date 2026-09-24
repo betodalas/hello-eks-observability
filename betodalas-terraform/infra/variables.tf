@@ -45,6 +45,11 @@ variable "vpc_cidr" {
   description = "Bloco CIDR geral da VPC."
   type        = string
   default     = "10.20.0.0/16"
+
+  validation {
+    condition     = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "vpc_cidr deve ser um bloco CIDR IPv4 válido."
+  }
 }
 
 variable "availability_zones" {
@@ -64,8 +69,10 @@ variable "private_subnets" {
   default     = ["10.20.0.0/20", "10.20.16.0/20"]
 
   validation {
-    condition     = length(var.private_subnets) == length(var.availability_zones)
-    error_message = "private_subnets deve ter a mesma quantidade de itens que availability_zones."
+    condition = length(var.private_subnets) == length(var.availability_zones) && alltrue([
+      for cidr in var.private_subnets : can(cidrhost(cidr, 0))
+    ])
+    error_message = "private_subnets deve ter um CIDR IPv4 válido por Availability Zone."
   }
 }
 
@@ -75,30 +82,65 @@ variable "public_subnets" {
   default     = ["10.20.100.0/24", "10.20.101.0/24"]
 
   validation {
-    condition     = length(var.public_subnets) == length(var.availability_zones)
-    error_message = "public_subnets deve ter a mesma quantidade de itens que availability_zones."
+    condition = length(var.public_subnets) == length(var.availability_zones) && alltrue([
+      for cidr in var.public_subnets : can(cidrhost(cidr, 0))
+    ])
+    error_message = "public_subnets deve ter um CIDR IPv4 válido por Availability Zone."
   }
 }
 
-variable "node_instance_types" {
-  description = "Tipo de instância dos nós. t3.micro é o perfil de bootstrap para contas Free Tier; use instâncias maiores em produção."
+variable "node_groups" {
+  description = "Managed node groups do EKS. A configuração default é econômica para contas Free Tier."
+  type = map(object({
+    ami_type       = optional(string, "AL2023_x86_64_STANDARD")
+    instance_types = list(string)
+    capacity_type  = optional(string, "ON_DEMAND")
+    min_size       = number
+    desired_size   = number
+    max_size       = number
+  }))
+  default = {
+    default = {
+      instance_types = ["t3.micro"]
+      min_size       = 1
+      desired_size   = 1
+      max_size       = 1
+    }
+  }
+
+  validation {
+    condition = alltrue([
+      for group in values(var.node_groups) :
+      length(group.instance_types) > 0 &&
+      group.min_size >= 0 &&
+      group.min_size <= group.desired_size &&
+      group.desired_size <= group.max_size
+    ])
+    error_message = "Cada node group precisa de instance_types e tamanhos min <= desired <= max."
+  }
+}
+
+variable "cluster_endpoint_public_access" {
+  description = "Habilita acesso público ao endpoint do Kubernetes."
+  type        = bool
+  default     = true
+}
+
+variable "cluster_endpoint_private_access" {
+  description = "Habilita acesso privado ao endpoint do Kubernetes dentro da VPC."
+  type        = bool
+  default     = true
+}
+
+variable "cluster_endpoint_public_access_cidrs" {
+  description = "CIDRs autorizados a acessar publicamente o endpoint do EKS."
   type        = list(string)
-  default     = ["t3.micro"]
-}
+  default     = ["0.0.0.0/0"]
 
-variable "node_min_size" {
-  type    = number
-  default = 1
-}
-
-variable "node_desired_size" {
-  type    = number
-  default = 1
-}
-
-variable "node_max_size" {
-  type    = number
-  default = 1
+  validation {
+    condition     = alltrue([for cidr in var.cluster_endpoint_public_access_cidrs : can(cidrhost(cidr, 0))])
+    error_message = "Todos os CIDRs do endpoint público devem ser válidos."
+  }
 }
 
 variable "lb_controller_chart_version" {

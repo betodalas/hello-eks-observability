@@ -60,15 +60,17 @@ as roles do pipeline têm acesso administrativo ao cluster.
 O perfil padrão dos nós é `t3.micro` com um único nó para permitir o bootstrap
 em contas com restrição Free Tier. Esse tamanho não é suficiente para garantir
 a execução do kube-prometheus-stack e da aplicação. Em uma conta sem essa
-restrição, sobrescreva `node_instance_types`, `node_min_size`,
-`node_desired_size` e `node_max_size` no `terraform.tfvars` antes do apply,
-por exemplo:
+restrição, substitua o bloco `node_groups` no `terraform.tfvars`, por exemplo:
 
 ```hcl
-node_instance_types = ["t3.large"]
-node_min_size       = 2
-node_desired_size   = 2
-node_max_size       = 4
+node_groups = {
+  default = {
+    instance_types = ["t3.large"]
+    min_size       = 2
+    desired_size   = 2
+    max_size       = 4
+  }
+}
 ```
 
 ## Organização do Terraform
@@ -116,6 +118,19 @@ iam_users = {
 ```
 
 Para usuários ou roles que já existem, continue usando `admin_principal_arns`.
+
+O endpoint público do EKS fica habilitado por padrão para permitir o uso do
+Terraform e do `kubectl` fora da VPC. O acesso privado também fica habilitado.
+Em produção, troque `cluster_endpoint_public_access_cidrs` pelo seu IP ou por
+uma rede corporativa; evite manter `0.0.0.0/0`:
+
+```hcl
+cluster_endpoint_public_access_cidrs = ["203.0.113.10/32"]
+```
+
+O `node_groups.default` é mantido com a mesma chave para preservar o endereço
+do node group no state durante a reorganização dos módulos. Para adicionar
+capacidade, crie outra chave sem renomear a existente.
 
 As variáveis, outputs e recursos de cada módulo ficam em arquivos separados
 (`variables.tf`, `outputs.tf` e `main.tf`). Como a migração do state será
