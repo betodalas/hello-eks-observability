@@ -30,10 +30,10 @@ spec:
           values: ["amd64"]
         - key: karpenter.sh/capacity-type
           operator: In
-          values: ["on-demand"]
+          values: ["spot"]
         - key: node.kubernetes.io/instance-type
           operator: In
-          values: ["t3.small", "t3.medium"]
+          values: ["t3.micro"]
   limits:
     cpu: "2"
   disruption:

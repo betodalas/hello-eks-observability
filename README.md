@@ -19,8 +19,8 @@ workflow de aplicação constrói [app/](./app/), publica no ECR e altera
 `gitops/apps/hello-app/kustomization.yaml`; essa alteração dispara a
 reconciliação automática do Argo CD.
 
-O ambiente de produção começa com seis `t3.micro`. O Karpenter usa instâncias
-`t3.small`/`t3.medium` sob demanda e tem limite de 2 vCPUs. Os requests do
+O ambiente de produção começa com dez `t3.micro`. O Karpenter usa somente
+instâncias `t3.micro` Spot e tem limite de 2 vCPUs. Os requests do
 Argo, Prometheus e Grafana foram reduzidos para caber no ambiente de
 demonstração. Em produção, aumente capacidade e retenção.
 
@@ -56,6 +56,7 @@ terraform -chdir=betodalas-terraform/infra/environments/prod output \
 Então aplique as Applications:
 
 ```bash
+kubectl apply -f gitops/argocd/karpenter-repository.yaml
 kubectl apply -f gitops/argocd/applications.yaml
 ```
 
