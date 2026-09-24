@@ -53,24 +53,24 @@ variable "az_count" {
 }
 
 variable "node_instance_types" {
-  description = "t3.large comporta o kube-prometheus-stack + app com folga (limite de ~35 pods/nó)"
+  description = "Tipo de instância dos nós. t3.micro é o perfil de bootstrap para contas Free Tier; use instâncias maiores em produção."
   type        = list(string)
-  default     = ["t3.large"]
+  default     = ["t3.micro"]
 }
 
 variable "node_min_size" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "node_desired_size" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "node_max_size" {
   type    = number
-  default = 4
+  default = 1
 }
 
 variable "lb_controller_chart_version" {

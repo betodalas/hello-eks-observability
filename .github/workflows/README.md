@@ -57,6 +57,20 @@ Antes do primeiro `apply`, confira também os valores de
 e `admin_principal_arns`. Essa última é opcional: quando não informada, somente
 as roles do pipeline têm acesso administrativo ao cluster.
 
+O perfil padrão dos nós é `t3.micro` com um único nó para permitir o bootstrap
+em contas com restrição Free Tier. Esse tamanho não é suficiente para garantir
+a execução do kube-prometheus-stack e da aplicação. Em uma conta sem essa
+restrição, sobrescreva `node_instance_types`, `node_min_size`,
+`node_desired_size` e `node_max_size` no `terraform.tfvars` antes do apply,
+por exemplo:
+
+```hcl
+node_instance_types = ["t3.large"]
+node_min_size       = 2
+node_desired_size   = 2
+node_max_size       = 4
+```
+
 ## Organização do Terraform
 
 Os recursos da infraestrutura ficam separados em módulos locais dentro de
