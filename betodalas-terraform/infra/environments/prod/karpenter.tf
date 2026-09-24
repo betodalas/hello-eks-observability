@@ -42,20 +42,34 @@ resource "aws_iam_role_policy" "karpenter_controller" {
           "ec2:DeleteLaunchTemplate",
           "ec2:DescribeAvailabilityZones",
           "ec2:DescribeImages",
+          "ec2:DescribeInstanceTypeOfferings",
+          "ec2:DescribeInstances",
           "ec2:DescribeInstanceTypes",
           "ec2:DescribeLaunchTemplates",
           "ec2:DescribeSecurityGroups",
           "ec2:DescribeSpotPriceHistory",
           "ec2:DescribeSubnets",
           "ec2:RunInstances",
-          "ec2:TerminateInstances"
+          "ec2:TerminateInstances",
+          "pricing:GetProducts"
         ]
         Resource = "*"
       },
       {
-        Effect   = "Allow"
-        Action   = ["iam:PassRole"]
-        Resource = aws_iam_role.karpenter_node.arn
+        Effect = "Allow"
+        Action = [
+          "iam:CreateInstanceProfile",
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:TagInstanceProfile",
+          "iam:PassRole"
+        ]
+        Resource = [
+          aws_iam_role.karpenter_node.arn,
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:instance-profile/${local.name}-karpenter*"
+        ]
       },
       {
         Effect   = "Allow"
@@ -91,6 +105,7 @@ locals {
     worker = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
     cni    = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
     ecr    = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
+    ssm    = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }
 }
 
