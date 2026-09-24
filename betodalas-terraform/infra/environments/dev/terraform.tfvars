@@ -11,6 +11,10 @@ cluster_endpoint_public_access       = true
 cluster_endpoint_private_access      = true
 cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
 
+admin_principal_arns = [
+  "arn:aws:iam::207131866724:user/terraform"
+]
+
 node_groups = {
   default = {
     instance_types = ["t3.micro"]
