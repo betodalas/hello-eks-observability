@@ -16,7 +16,7 @@ spec:
           create: true
           name: aws-load-balancer-controller
           annotations:
-            eks.amazonaws.com/role-arn: REPLACE_WITH_LOAD_BALANCER_CONTROLLER_ROLE_ARN
+            eks.amazonaws.com/role-arn: arn:aws:iam::207131866724:role/hello-observability-prod-lb-controller
         replicaCount: 1
         resources:
           requests:
@@ -53,7 +53,7 @@ spec:
         serviceAccount:
           name: karpenter
           annotations:
-            eks.amazonaws.com/role-arn: REPLACE_WITH_KARPENTER_CONTROLLER_ROLE_ARN
+            eks.amazonaws.com/role-arn: arn:aws:iam::207131866724:role/hello-observability-prod-karpenter-controller
         controller:
           resources:
             requests:
