@@ -13,7 +13,6 @@ sem armazenar access keys no GitHub.
    aprovação obrigatória para o job de `apply`.
 3. Cadastre estas **Variables** no repositório:
 
-   - `AWS_REGION`: `us-east-1`
    - `AWS_TERRAFORM_PLAN_ROLE_ARN`: ARN emitido por
      `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_plan_role_arn`
    - `AWS_TERRAFORM_APPLY_ROLE_ARN`: ARN emitido por
