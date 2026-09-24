@@ -76,16 +76,6 @@ output para ser usado na configuração do ServiceAccount gerenciado pelo Argo
 CD. Assim, cada recurso tem um único owner e Terraform e Argo CD não disputam
 o mesmo estado.
 
-### Migração dos charts existentes
-
-Os ambientes contêm blocos `removed` com `destroy = false` para retirar do
-state os antigos `helm_release` de observabilidade e do Load Balancer
-Controller sem deletar os recursos do cluster. Antes de aplicar esta mudança,
-publique no GitOps os charts equivalentes e configure o Argo CD para usar os
-mesmos namespaces e ServiceAccounts. Depois do apply, valide a sincronização
-no Argo CD e remova esses blocos em uma alteração posterior, quando nenhum
-state antigo existir.
-
 O Argo CD e seu repositório GitOps são uma camada separada deste root
 Terraform. O workflow deste arquivo continua validando e aplicando apenas a
 infraestrutura; a reconciliação dos workloads deve ocorrer no pipeline do
