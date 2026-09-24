@@ -56,6 +56,7 @@ terraform -chdir=betodalas-terraform/infra/environments/prod output \
 Então aplique as Applications:
 
 ```bash
+kubectl apply -f gitops/argocd/karpenter-repository.yaml
 kubectl apply -f gitops/argocd/applications.yaml
 ```
 

@@ -43,7 +43,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: oci://public.ecr.aws/karpenter
+    repoURL: public.ecr.aws/karpenter
     chart: karpenter
     targetRevision: 1.5.0
     helm:
@@ -51,6 +51,7 @@ spec:
         settings:
           clusterName: hello-observability-prod
         serviceAccount:
+          name: karpenter
           annotations:
             eks.amazonaws.com/role-arn: REPLACE_WITH_KARPENTER_CONTROLLER_ROLE_ARN
         controller:
@@ -63,7 +64,7 @@ spec:
               memory: 128Mi
   destination:
     server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: karpenter
   syncPolicy:
     automated:
       prune: true
@@ -84,7 +85,7 @@ spec:
     path: gitops/platform/karpenter-nodepool
   destination:
     server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: karpenter
   syncPolicy:
     automated:
       prune: true
