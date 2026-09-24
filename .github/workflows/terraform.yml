@@ -7,6 +7,7 @@ on:
       - "betodalas-terraform/infra/**/*.hcl"
       - "betodalas-terraform/infra/**/*.tfvars"
       - ".github/workflows/terraform.yml"
+      - ".github/workflows/README.md"
   push:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - "betodalas-terraform/infra/**/*.hcl"
       - "betodalas-terraform/infra/**/*.tfvars"
       - ".github/workflows/terraform.yml"
+      - ".github/workflows/README.md"
 permissions:
   contents: read
   id-token: write
@@ -29,7 +31,7 @@ env:
   TF_INPUT: false
   TF_WORKING_DIR: betodalas-terraform/infra
   TF_VERSION: "1.10.5"
-  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_REGION: us-east-1
 
 jobs:
   plan:
@@ -49,7 +51,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_TERRAFORM_PLAN_ROLE_ARN }}
           role-session-name: github-actions-terraform-plan
 
       - name: Terraform init
@@ -76,7 +78,7 @@ jobs:
           TF_VAR_github_repo: ${{ github.repository }}
         run: |
           set -o pipefail
-          terraform plan -no-color -out=tfplan 2>&1 | tee plan.txt
+          terraform plan -lock=false -no-color -out=tfplan 2>&1 | tee plan.txt
 
       - name: Comment plan on pull request
         if: github.event_name == 'pull_request' && always()
@@ -159,7 +161,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_TERRAFORM_APPLY_ROLE_ARN }}
           role-session-name: github-actions-terraform-apply
 
       - name: Terraform init
