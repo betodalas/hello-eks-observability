@@ -82,10 +82,11 @@ spec:
         controller:
           resources:
             requests:
-              cpu: 1
-              memory: 1Gi
+              cpu: 20m
+              memory: 64Mi
             limits:
-              memory: 1Gi
+              cpu: 100m
+              memory: 128Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: karpenter
