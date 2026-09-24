@@ -77,3 +77,61 @@ Antes do primeiro `apply`, confira também os valores de
 `betodalas-terraform/infra/terraform.tfvars`, especialmente `github_repo`,
 e `admin_principal_arns`. Essa última é opcional: quando não informada, somente
 as roles do pipeline têm acesso administrativo ao cluster.
+
+O perfil padrão dos nós é `t3.micro` com um único nó para permitir o bootstrap
+em contas com restrição Free Tier. Esse tamanho não é suficiente para garantir
+a execução do kube-prometheus-stack e da aplicação. Em uma conta sem essa
+restrição, sobrescreva `node_instance_types`, `node_min_size`,
+`node_desired_size` e `node_max_size` no `terraform.tfvars` antes do apply,
+por exemplo:
+
+```hcl
+node_instance_types = ["t3.large"]
+node_min_size       = 2
+node_desired_size   = 2
+node_max_size       = 4
+```
+
+## Organização do Terraform
+
+Os recursos da infraestrutura ficam separados em módulos locais dentro de
+`betodalas-terraform/infra/modules/`:
+
+- `vpc`: rede, subnets e NAT Gateway;
+- `eks`: cluster, node groups e EKS Access Entries. As permissões do cluster
+  ficam junto do cluster porque dependem da API do EKS;
+- `iam`: criação opcional de usuários IAM. Usuários declarados em `iam_users`
+  recebem uma Access Entry administrativa no EKS, mas o módulo não cria chaves
+  de acesso.
+
+Para criar um usuário IAM e permitir seu acesso administrativo ao cluster,
+adicione-o em `betodalas-terraform/infra/terraform.tfvars`:
+
+```hcl
+iam_users = {
+  roberto = {
+    tags = {
+      Owner = "roberto"
+    }
+  }
+}
+```
+
+Para usuários ou roles que já existem, continue usando `admin_principal_arns`.
+
+As variáveis, outputs e recursos de cada módulo ficam em arquivos separados
+(`variables.tf`, `outputs.tf` e `main.tf`). Como a migração do state será
+manual, execute os comandos abaixo localmente, com o backend configurado, antes
+de rodar o pipeline:
+
+```bash
+terraform -chdir=betodalas-terraform/infra state mv \
+  'module.vpc' 'module.vpc.module.vpc'
+
+terraform -chdir=betodalas-terraform/infra state mv \
+  'module.eks' 'module.eks.module.eks'
+```
+
+Depois, execute `terraform plan` localmente e confirme que não existem
+operações `destroy` ou `create` para a VPC e o EKS. O state remoto deve estar
+salvo e desbloqueado antes do primeiro `plan` do pipeline.

@@ -26,6 +26,15 @@ variable "admin_principal_arns" {
   default     = []
 }
 
+variable "iam_users" {
+  description = "Usuários IAM a criar e autorizar como administradores do cluster. Não cria chaves de acesso."
+  type = map(object({
+    path = optional(string, "/")
+    tags = optional(map(string), {})
+  }))
+  default = {}
+}
+
 variable "kubernetes_version" {
   description = "Versão do Kubernetes no EKS (confira as que estão em suporte padrão)"
   type        = string
@@ -44,24 +53,24 @@ variable "az_count" {
 }
 
 variable "node_instance_types" {
-  description = "t3.large comporta o kube-prometheus-stack + app com folga (limite de ~35 pods/nó)"
+  description = "Tipo de instância dos nós. t3.micro é o perfil de bootstrap para contas Free Tier; use instâncias maiores em produção."
   type        = list(string)
-  default     = ["t3.large"]
+  default     = ["t3.micro"]
 }
 
 variable "node_min_size" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "node_desired_size" {
   type    = number
-  default = 2
+  default = 1
 }
 
 variable "node_max_size" {
   type    = number
-  default = 4
+  default = 1
 }
 
 variable "lb_controller_chart_version" {
