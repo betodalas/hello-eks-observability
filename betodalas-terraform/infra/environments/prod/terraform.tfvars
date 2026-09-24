@@ -14,7 +14,7 @@ public_subnets     = ["10.30.100.0/24", "10.30.101.0/24"]
 
 cluster_endpoint_public_access       = true
 cluster_endpoint_private_access      = true
-cluster_endpoint_public_access_cidrs = ["179.159.253.66/32"]
+cluster_endpoint_public_access_cidrs = ["179.159.253.66/32", "170.246.83.27/32"]
 
 node_groups = {
   default = {
