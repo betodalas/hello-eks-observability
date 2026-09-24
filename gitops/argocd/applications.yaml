@@ -38,6 +38,29 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
+  name: karpenter-crd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: public.ecr.aws/karpenter
+    chart: karpenter-crd
+    targetRevision: 1.13.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: karpenter
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
   name: karpenter
   namespace: argocd
 spec:
@@ -45,9 +68,11 @@ spec:
   source:
     repoURL: public.ecr.aws/karpenter
     chart: karpenter
-    targetRevision: 1.5.0
+    targetRevision: 1.13.0
     helm:
       values: |
+        crds:
+          install: false
         settings:
           clusterName: hello-observability-prod
         serviceAccount:
