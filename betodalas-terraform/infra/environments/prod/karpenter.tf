@@ -51,25 +51,40 @@ resource "aws_iam_role_policy" "karpenter_controller" {
           "ec2:DescribeSubnets",
           "ec2:RunInstances",
           "ec2:TerminateInstances",
+          "ec2:DescribeInstanceStatus",
           "pricing:GetProducts"
         ]
         Resource = "*"
       },
       {
+        Sid      = "AllowInstanceProfileReadActions"
+        Effect   = "Allow"
+        Action   = "iam:GetInstanceProfile"
+        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:instance-profile/*"
+      },
+      {
+        Sid    = "AllowInstanceProfileMutationActions"
         Effect = "Allow"
         Action = [
           "iam:CreateInstanceProfile",
           "iam:AddRoleToInstanceProfile",
           "iam:RemoveRoleFromInstanceProfile",
           "iam:DeleteInstanceProfile",
-          "iam:GetInstanceProfile",
-          "iam:TagInstanceProfile",
-          "iam:PassRole"
+          "iam:TagInstanceProfile"
         ]
         Resource = [
-          aws_iam_role.karpenter_node.arn,
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:instance-profile/${local.name}-karpenter*"
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:instance-profile/karpenter/${var.region}/${local.name}/*"
         ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = aws_iam_role.karpenter_node.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "iam:ListInstanceProfiles"
+        Resource = "*"
       },
       {
         Effect   = "Allow"
@@ -118,4 +133,8 @@ resource "aws_iam_role_policy_attachment" "karpenter_node" {
 resource "aws_iam_instance_profile" "karpenter" {
   name = "${local.name}-karpenter"
   role = aws_iam_role.karpenter_node.name
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
