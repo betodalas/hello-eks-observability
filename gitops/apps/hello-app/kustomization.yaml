@@ -6,5 +6,5 @@ resources:
   - ingress.yaml
 images:
   - name: hello-app
-    newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability/hello-app
+    newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-app
     newTag: bootstrap

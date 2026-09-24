@@ -19,8 +19,8 @@ cluster_endpoint_public_access_cidrs = ["179.159.253.66/32"]
 node_groups = {
   default = {
     instance_types = ["t3.micro"]
-    min_size       = 4
-    desired_size   = 4
-    max_size       = 4
+    min_size       = 6
+    desired_size   = 6
+    max_size       = 6
   }
 }
