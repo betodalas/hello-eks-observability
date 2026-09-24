@@ -18,8 +18,8 @@ admin_principal_arns = [
 node_groups = {
   default = {
     instance_types = ["t3.micro"]
-    min_size       = 2
-    desired_size   = 2
-    max_size       = 2
+    min_size       = 4
+    desired_size   = 4
+    max_size       = 4
   }
 }
