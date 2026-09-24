@@ -60,7 +60,8 @@ do deployment. A aprovação do PR não substitui a aprovação do Environment.
 
 ## Fluxo
 
-- Pull requests executam `fmt`, `validate` e `plan` em `betodalas-terraform/infra`;
+- Pull requests direcionados à branch `dev` executam `fmt`, `validate` e `plan`
+  em `betodalas-terraform/infra`;
   o resultado é publicado
   em um comentário atualizável no próprio PR.
 - Pushes em `main` executam `plan` e depois aguardam a aprovação obrigatória do
