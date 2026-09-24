@@ -83,3 +83,11 @@ iam_users = {
 ```
 
 Para usuários ou roles que já existem, continue usando `admin_principal_arns`.
+
+As variáveis, outputs e recursos de cada módulo ficam em arquivos separados
+(`variables.tf`, `outputs.tf` e `main.tf`). O arquivo `moved.tf` preserva os
+recursos existentes ao migrar os módulos antigos diretamente do registry para
+os wrappers locais. Antes do primeiro apply após esta mudança, execute
+`terraform plan` e confirme que os recursos aparecem como movidos, sem
+destroy/create. Não remova os blocos `moved` até que essa migração tenha sido
+aplicada no state remoto.

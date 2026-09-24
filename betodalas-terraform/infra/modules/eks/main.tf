@@ -1,53 +1,3 @@
-variable "cluster_name" {
-  type = string
-}
-
-variable "cluster_version" {
-  type = string
-}
-
-variable "vpc_id" {
-  type = string
-}
-
-variable "private_subnet_ids" {
-  type = list(string)
-}
-
-variable "terraform_plan_role_arn" {
-  type = string
-}
-
-variable "terraform_apply_role_arn" {
-  type = string
-}
-
-variable "admin_principal_arns" {
-  type    = list(string)
-  default = []
-}
-
-variable "user_principal_arns" {
-  type    = map(string)
-  default = {}
-}
-
-variable "node_instance_types" {
-  type = list(string)
-}
-
-variable "node_min_size" {
-  type = number
-}
-
-variable "node_desired_size" {
-  type = number
-}
-
-variable "node_max_size" {
-  type = number
-}
-
 locals {
   cluster_admin_policy = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
   admin_access = {
@@ -122,20 +72,4 @@ module "eks" {
     },
     local.admin_access
   )
-}
-
-output "cluster_name" {
-  value = module.eks.cluster_name
-}
-
-output "cluster_endpoint" {
-  value = module.eks.cluster_endpoint
-}
-
-output "cluster_certificate_authority_data" {
-  value = module.eks.cluster_certificate_authority_data
-}
-
-output "oidc_provider_arn" {
-  value = module.eks.oidc_provider_arn
 }

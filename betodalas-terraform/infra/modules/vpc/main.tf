@@ -1,19 +1,3 @@
-variable "name" {
-  type = string
-}
-
-variable "cidr" {
-  type = string
-}
-
-variable "azs" {
-  type = list(string)
-}
-
-variable "cluster_name" {
-  type = string
-}
-
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.21"
@@ -38,16 +22,4 @@ module "vpc" {
     "kubernetes.io/role/internal-elb"           = 1
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
-}
-
-output "vpc_id" {
-  value = module.vpc.vpc_id
-}
-
-output "private_subnets" {
-  value = module.vpc.private_subnets
-}
-
-output "public_subnets" {
-  value = module.vpc.public_subnets
 }
