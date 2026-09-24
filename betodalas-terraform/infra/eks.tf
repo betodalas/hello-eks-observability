@@ -44,9 +44,18 @@ module "eks" {
   # EKS Access Entries (substitui o ConfigMap aws-auth)
   access_entries = merge(
     {
-      # Role do Terraform no GitHub Actions: precisa para os providers helm/kubernetes
-      terraform_ci = {
-        principal_arn = local.terraform_ci_role_arn
+      # Roles do Terraform no GitHub Actions: precisam para os providers helm/kubernetes
+      terraform_plan = {
+        principal_arn = local.terraform_plan_role_arn
+        policy_associations = {
+          admin = {
+            policy_arn   = local.cluster_admin_policy
+            access_scope = { type = "cluster" }
+          }
+        }
+      }
+      terraform_apply = {
+        principal_arn = local.terraform_apply_role_arn
         policy_associations = {
           admin = {
             policy_arn   = local.cluster_admin_policy
@@ -55,17 +64,6 @@ module "eks" {
         }
       }
 
-      # Role de deploy da aplicação (helm upgrade no pipeline da app)
-      # Admin por simplicidade; em produção restrinja ao namespace da app.
-      github_deploy = {
-        principal_arn = aws_iam_role.github_actions.arn
-        policy_associations = {
-          admin = {
-            policy_arn   = local.cluster_admin_policy
-            access_scope = { type = "cluster" }
-          }
-        }
-      }
     },
     # Você (e quem mais estiver na lista) para usar o kubectl
     {

@@ -7,18 +7,21 @@ sem armazenar access keys no GitHub.
 
 1. Execute o Terraform em `betodalas-terraform/bootstrap/` localmente, com credenciais AWS
    administrativas. Esse passo cria o bucket S3 do state e a role
-   `hello-observability-terraform-ci`.
+   `hello-observability-terraform-plan` e
+   `hello-observability-terraform-apply`.
 2. No GitHub, crie o Environment `production` e, de preferência, habilite
    aprovação obrigatória para o job de `apply`.
 3. Cadastre estas **Variables** no repositório:
 
    - `AWS_REGION`: `us-east-1`
-   - `AWS_TERRAFORM_ROLE_ARN`: ARN emitido por
-     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_ci_role_arn`
+   - `AWS_TERRAFORM_PLAN_ROLE_ARN`: ARN emitido por
+     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_plan_role_arn`
+   - `AWS_TERRAFORM_APPLY_ROLE_ARN`: ARN emitido por
+     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_apply_role_arn`
    - `TF_STATE_BUCKET`: nome do bucket criado pelo bootstrap
    - `TF_STATE_KEY`: `eks/terraform.tfstate`
 
-O O repositório usado no bootstrap deve ser exatamente o repositório que contém
+O repositório usado no bootstrap deve ser exatamente o repositório que contém
 este workflow. O valor é validado pela trust policy do OIDC.
 
 ## Fluxo
@@ -38,4 +41,4 @@ comentário `Terraform plan` antes de fazer o merge.
 
 Antes do primeiro `apply`, confira também os valores de
 `betodalas-terraform/infra/terraform.tfvars`, especialmente `github_repo`,
-`admin_principal_arns` e `create_github_oidc_provider`.
+e `admin_principal_arns`.

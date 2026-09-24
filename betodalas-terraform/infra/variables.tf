@@ -15,12 +15,6 @@ variable "github_repo" {
   type        = string
 }
 
-variable "github_branch" {
-  description = "Branch autorizada a assumir a role de deploy da app"
-  type        = string
-  default     = "main"
-}
-
 variable "admin_principal_arns" {
   description = <<-EOT
     ARNs de usuários/roles IAM que terão acesso admin ao cluster (kubectl).
