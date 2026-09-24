@@ -2,13 +2,9 @@ name: Terraform
 
 on:
   pull_request:
-    paths:
-      - "betodalas-terraform/**"
   push:
     branches:
       - main
-    paths:
-      - "betodalas-terraform/**"
 permissions:
   contents: read
   id-token: write
@@ -26,10 +22,30 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
+  changes:
+    name: Detect Terraform changes
+    runs-on: ubuntu-latest
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            terraform:
+              - "betodalas-terraform/**"
+
   plan:
     name: Terraform plan
+    needs: changes
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.terraform == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -136,7 +152,8 @@ jobs:
 
   apply:
     name: Terraform apply
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.terraform == 'true'
     runs-on: ubuntu-latest
     environment:
       name: production
