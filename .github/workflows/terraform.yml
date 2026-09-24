@@ -3,7 +3,9 @@ name: Terraform
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - dev
 
 permissions:
   contents: read
@@ -94,15 +96,15 @@ jobs:
           retention-days: 7
 
   apply:
-    name: Apply (prod)
+    name: Apply (${{ github.ref_name }})
     needs: changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.terraform == 'true'
+    if: github.event_name == 'push' && needs.changes.outputs.terraform == 'true'
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     defaults:
       run:
-        working-directory: betodalas-terraform/infra/environments/prod
+        working-directory: betodalas-terraform/infra/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -113,7 +115,7 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_TERRAFORM_APPLY_ROLE_ARN }}
-          role-session-name: github-actions-terraform-apply-prod
+          role-session-name: github-actions-terraform-apply-${{ github.ref_name }}
       - name: Terraform init
         run: terraform init -backend-config=backend.hcl -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
       - name: Terraform format check
