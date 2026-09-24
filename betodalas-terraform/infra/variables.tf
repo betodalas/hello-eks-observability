@@ -42,14 +42,42 @@ variable "kubernetes_version" {
 }
 
 variable "vpc_cidr" {
-  type    = string
-  default = "10.0.0.0/16"
+  description = "Bloco CIDR geral da VPC."
+  type        = string
+  default     = "10.20.0.0/16"
 }
 
-variable "az_count" {
-  description = "Quantidade de AZs (mínimo 2 exigido pelo EKS e pelo ALB)"
-  type        = number
-  default     = 2
+variable "availability_zones" {
+  description = "AZs usadas pela VPC. A ordem define a correspondência com as subnets."
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
+
+  validation {
+    condition     = length(var.availability_zones) >= 2
+    error_message = "Informe pelo menos duas Availability Zones."
+  }
+}
+
+variable "private_subnets" {
+  description = "Uma subnet privada por Availability Zone, na mesma ordem de availability_zones."
+  type        = list(string)
+  default     = ["10.20.0.0/20", "10.20.16.0/20"]
+
+  validation {
+    condition     = length(var.private_subnets) == length(var.availability_zones)
+    error_message = "private_subnets deve ter a mesma quantidade de itens que availability_zones."
+  }
+}
+
+variable "public_subnets" {
+  description = "Uma subnet pública por Availability Zone, na mesma ordem de availability_zones."
+  type        = list(string)
+  default     = ["10.20.100.0/24", "10.20.101.0/24"]
+
+  validation {
+    condition     = length(var.public_subnets) == length(var.availability_zones)
+    error_message = "public_subnets deve ter a mesma quantidade de itens que availability_zones."
+  }
 }
 
 variable "node_instance_types" {

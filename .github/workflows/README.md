@@ -83,6 +83,25 @@ Os recursos da infraestrutura ficam separados em módulos locais dentro de
   recebem uma Access Entry administrativa no EKS, mas o módulo não cria chaves
   de acesso.
 
+### Rede VPC
+
+O plano de endereçamento fica explícito em
+`betodalas-terraform/infra/terraform.tfvars`. A ordem das listas é importante:
+o primeiro item pertence à primeira AZ, o segundo à segunda AZ e assim por
+diante.
+
+```hcl
+availability_zones = ["us-east-1a", "us-east-1b"]
+vpc_cidr           = "10.20.0.0/16"
+private_subnets    = ["10.20.0.0/20", "10.20.16.0/20"]
+public_subnets     = ["10.20.100.0/24", "10.20.101.0/24"]
+```
+
+Ao adicionar uma AZ, adicione também uma subnet privada e uma pública. As
+listas precisam ter a mesma quantidade de itens e não podem sobrepor outras
+redes usadas pela organização. Alterar esses CIDRs depois que a VPC existir
+normalmente exige recriar a rede e os recursos dependentes.
+
 Para criar um usuário IAM e permitir seu acesso administrativo ao cluster,
 adicione-o em `betodalas-terraform/infra/terraform.tfvars`:
 
