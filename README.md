@@ -2,8 +2,8 @@
 
 Este projeto provisiona um EKS econômico e entrega a aplicação pelo GitOps:
 
-- Terraform: VPC, EKS, ECR, OIDC/IRSA, AWS Load Balancer Controller, Karpenter e
-  o bootstrap mínimo do Argo CD.
+- Terraform: VPC, EKS, ECR, OIDC/IRSA, AWS Load Balancer Controller e
+  Karpenter. O Argo CD é instalado manualmente no cluster.
 - Argo CD: AWS Load Balancer Controller, Karpenter, Prometheus, Grafana e
   `hello-app`.
 - GitHub Actions: publica a imagem no ECR com a SHA do commit e atualiza o tag
@@ -11,27 +11,30 @@ Este projeto provisiona um EKS econômico e entrega a aplicação pelo GitOps:
 
 ## Fluxo de entrega
 
-O primeiro `terraform apply` instala o Argo CD e cria as Applications. O
+O `terraform apply` cria somente a infraestrutura AWS. Depois, o Argo CD é
+instalado manualmente a partir de uma máquina com acesso ao endpoint do EKS e
+as Applications são aplicadas por
+[gitops/argocd/applications.yaml](./gitops/argocd/applications.yaml). O
 workflow de aplicação constrói [app/](./app/), publica no ECR e altera
 `gitops/apps/hello-app/kustomization.yaml`; essa alteração dispara a
 reconciliação automática do Argo CD.
 
-O node group inicial é um único `t3.micro`, suficiente para o bootstrap. O
-Karpenter usa instâncias `t3.small`/`t3.medium` sob demanda e tem limite de 2
-vCPUs. Os requests do Argo, Prometheus e Grafana foram reduzidos para caber no
-ambiente de demonstração. Em produção, aumente capacidade e retenção.
+O ambiente de produção começa com seis `t3.micro`. O Karpenter usa instâncias
+`t3.small`/`t3.medium` sob demanda e tem limite de 2 vCPUs. Os requests do
+Argo, Prometheus e Grafana foram reduzidos para caber no ambiente de
+demonstração. Em produção, aumente capacidade e retenção.
 
 ## Deploy
 
 1. Configure o backend S3, as roles OIDC do GitHub e as variáveis do ambiente
-   em `betodalas-terraform/infra/environments/dev/terraform.tfvars`.
+   em `betodalas-terraform/infra/environments/prod/terraform.tfvars`.
 2. Execute:
 
    ```bash
-   terraform -chdir=betodalas-terraform/infra/environments/dev init \
+   terraform -chdir=betodalas-terraform/infra/environments/prod init \
      -backend-config=backend.hcl
-   terraform -chdir=betodalas-terraform/infra/environments/dev plan
-   terraform -chdir=betodalas-terraform/infra/environments/dev apply
+   terraform -chdir=betodalas-terraform/infra/environments/prod plan
+   terraform -chdir=betodalas-terraform/infra/environments/prod apply
    ```
 
 3. Cadastre `AWS_TERRAFORM_APPLY_ROLE_ARN` como variável do repositório GitHub.
@@ -40,10 +43,26 @@ ambiente de demonstração. Em produção, aumente capacidade e retenção.
 4. Faça push de uma alteração em `app/`. O workflow `.github/workflows/app.yml`
    publicará a imagem e fará o commit do novo SHA no diretório GitOps.
 
+Depois de instalar o Argo CD manualmente, substitua os dois placeholders de
+ARN em `gitops/argocd/applications.yaml` pelos outputs Terraform:
+
+```bash
+terraform -chdir=betodalas-terraform/infra/environments/prod output \
+  load_balancer_controller_role_arn
+terraform -chdir=betodalas-terraform/infra/environments/prod output \
+  karpenter_controller_role_arn
+```
+
+Então aplique as Applications:
+
+```bash
+kubectl apply -f gitops/argocd/applications.yaml
+```
+
 ## Acesso para a apresentação
 
 ```bash
-aws eks update-kubeconfig --region us-east-1 --name hello-observability
+aws eks update-kubeconfig --region us-east-1 --name hello-observability-prod
 kubectl get applications -n argocd
 kubectl get ingress -n hello-app
 kubectl get nodes

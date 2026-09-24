@@ -12,7 +12,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: hello-observability/hello-app
+  ECR_REPOSITORY: hello-observability-prod/hello-app
 
 jobs:
   build-and-deploy:

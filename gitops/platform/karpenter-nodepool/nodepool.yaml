@@ -3,15 +3,15 @@ kind: EC2NodeClass
 metadata:
   name: default
 spec:
-  role: hello-observability-karpenter-node
+  role: hello-observability-prod-karpenter-node
   amiSelectorTerms:
     - alias: al2023@latest
   subnetSelectorTerms:
     - tags:
-        kubernetes.io/cluster/hello-observability: shared
+        kubernetes.io/cluster/hello-observability-prod: shared
   securityGroupSelectorTerms:
     - tags:
-        kubernetes.io/cluster/hello-observability: owned
+        kubernetes.io/cluster/hello-observability-prod: owned
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
