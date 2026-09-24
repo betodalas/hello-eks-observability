@@ -17,17 +17,13 @@ variable "github_repo" {
 
 variable "admin_principal_arns" {
   description = <<-EOT
-    ARNs de usuários/roles IAM que terão acesso admin ao cluster (kubectl).
-    Como quem cria o cluster é a role do CI, sem isto VOCÊ ficaria sem acesso.
+    ARNs opcionais de usuários/roles IAM que terão acesso admin ao cluster
+    (kubectl), além das roles do pipeline.
     Ex.: ["arn:aws:iam::123456789012:user/roberto"]
     (SSO: use o ARN da role AWSReservedSSO_*, sem o /aws-reserved/... e sem o nome da sessão)
   EOT
   type        = list(string)
-
-  validation {
-    condition     = length(var.admin_principal_arns) > 0
-    error_message = "Informe ao menos um ARN admin, senão ninguém além do CI consegue usar o cluster."
-  }
+  default     = []
 }
 
 variable "kubernetes_version" {

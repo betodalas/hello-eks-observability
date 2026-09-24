@@ -54,4 +54,5 @@ comentário `Terraform plan` antes de fazer o merge.
 
 Antes do primeiro `apply`, confira também os valores de
 `betodalas-terraform/infra/terraform.tfvars`, especialmente `github_repo`,
-e `admin_principal_arns`.
+e `admin_principal_arns`. Essa última é opcional: quando não informada, somente
+as roles do pipeline têm acesso administrativo ao cluster.
