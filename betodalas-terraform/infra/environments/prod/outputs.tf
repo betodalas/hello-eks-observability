@@ -19,3 +19,13 @@ output "load_balancer_controller_role_arn" {
   description = "Role IAM usada pelo AWS Load Balancer Controller via IRSA."
   value       = module.lb_controller_irsa.iam_role_arn
 }
+
+output "karpenter_controller_role_arn" {
+  description = "Role IAM usada pelo Karpenter via IRSA."
+  value       = aws_iam_role.karpenter_controller.arn
+}
+
+output "karpenter_instance_profile_name" {
+  description = "Instance profile usado pelo Karpenter para os nós provisionados."
+  value       = aws_iam_instance_profile.karpenter.name
+}

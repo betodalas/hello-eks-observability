@@ -21,6 +21,12 @@ variable "github_repo" {
   type        = string
 }
 
+variable "gitops_revision" {
+  description = "Branch ou tag que o Argo CD deve reconciliar."
+  type        = string
+  default     = "main"
+}
+
 variable "admin_principal_arns" {
   description = <<-EOT
     ARNs opcionais de usuários/roles IAM que terão acesso admin ao cluster
