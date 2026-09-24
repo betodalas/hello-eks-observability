@@ -85,9 +85,18 @@ iam_users = {
 Para usuários ou roles que já existem, continue usando `admin_principal_arns`.
 
 As variáveis, outputs e recursos de cada módulo ficam em arquivos separados
-(`variables.tf`, `outputs.tf` e `main.tf`). O arquivo `moved.tf` preserva os
-recursos existentes ao migrar os módulos antigos diretamente do registry para
-os wrappers locais. Antes do primeiro apply após esta mudança, execute
-`terraform plan` e confirme que os recursos aparecem como movidos, sem
-destroy/create. Não remova os blocos `moved` até que essa migração tenha sido
-aplicada no state remoto.
+(`variables.tf`, `outputs.tf` e `main.tf`). Como a migração do state será
+manual, execute os comandos abaixo localmente, com o backend configurado, antes
+de rodar o pipeline:
+
+```bash
+terraform -chdir=betodalas-terraform/infra state mv \
+  'module.vpc' 'module.vpc.module.vpc'
+
+terraform -chdir=betodalas-terraform/infra state mv \
+  'module.eks' 'module.eks.module.eks'
+```
+
+Depois, execute `terraform plan` localmente e confirme que não existem
+operações `destroy` ou `create` para a VPC e o EKS. O state remoto deve estar
+salvo e desbloqueado antes do primeiro `plan` do pipeline.
