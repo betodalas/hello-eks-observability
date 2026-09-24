@@ -11,14 +11,20 @@ sem armazenar access keys no GitHub.
    `hello-observability-terraform-apply`.
 2. No GitHub, crie o Environment `production` e, de preferência, habilite
    aprovação obrigatória para o job de `apply`.
-3. Cadastre estas **Variables** no repositório:
+3. Em **Repository variables** (não dentro do Environment), cadastre:
 
    - `AWS_TERRAFORM_PLAN_ROLE_ARN`: ARN emitido por
      `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_plan_role_arn`
-   - `AWS_TERRAFORM_APPLY_ROLE_ARN`: ARN emitido por
-     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_apply_role_arn`
    - `TF_STATE_BUCKET`: nome do bucket criado pelo bootstrap
    - `TF_STATE_KEY`: `eks/terraform.tfstate`
+
+   O job de `plan` precisa dessas variables em um Pull Request. Ele não usa
+   o Environment `production`, pois sua role OIDC aceita somente o subject
+   `pull_request`.
+4. Em **Environment variables** do Environment `production`, cadastre:
+
+   - `AWS_TERRAFORM_APPLY_ROLE_ARN`: ARN emitido por
+     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_apply_role_arn`
 
 O repositório usado no bootstrap deve ser exatamente o repositório que contém
 este workflow. O valor é validado pela trust policy do OIDC.
