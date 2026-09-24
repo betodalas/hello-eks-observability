@@ -59,6 +59,11 @@ resource "aws_iam_role_policy" "karpenter_controller" {
       },
       {
         Effect   = "Allow"
+        Action   = ["eks:DescribeCluster"]
+        Resource = module.eks.cluster_arn
+      },
+      {
+        Effect   = "Allow"
         Action   = ["ssm:GetParameter"]
         Resource = "arn:aws:ssm:${var.region}::parameter/aws/service/eks/optimized-ami/${var.kubernetes_version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
       }
