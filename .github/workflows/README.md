@@ -47,6 +47,50 @@ em pushes para `main`. Cada apply usa o diretório e o state do próprio
 ambiente. O apply de prod é protegido pelo Environment `production` e seus
 required reviewers; o apply de dev usa o Environment `development`.
 
+## Fronteira entre Terraform e Argo CD
+
+O Terraform deste repositório é responsável somente pela infraestrutura AWS e
+pela configuração base do EKS:
+
+- VPC, subnets, NAT Gateway e security groups;
+- cluster EKS e managed node groups;
+- EKS managed add-ons;
+- IAM, OIDC, Access Entries e roles usadas por controllers;
+- repositório ECR e recursos necessários para o bootstrap.
+
+O Terraform não instala mais charts nem recursos de workload no Kubernetes.
+Os providers `helm` e `kubernetes` não fazem parte dos roots de ambiente.
+
+O Argo CD deve ser o único responsável pelo estado dentro do cluster,
+instalando via Helm e reconciliando:
+
+- AWS Load Balancer Controller;
+- Karpenter;
+- Prometheus, Grafana e Alertmanager;
+- dashboards, regras e monitores;
+- aplicações, Services e Ingresses.
+
+As roles IAM necessárias aos controllers continuam sendo criadas pelo
+Terraform. Por exemplo, `load_balancer_controller_role_arn` é exposto como
+output para ser usado na configuração do ServiceAccount gerenciado pelo Argo
+CD. Assim, cada recurso tem um único owner e Terraform e Argo CD não disputam
+o mesmo estado.
+
+### Migração dos charts existentes
+
+Os ambientes contêm blocos `removed` com `destroy = false` para retirar do
+state os antigos `helm_release` de observabilidade e do Load Balancer
+Controller sem deletar os recursos do cluster. Antes de aplicar esta mudança,
+publique no GitOps os charts equivalentes e configure o Argo CD para usar os
+mesmos namespaces e ServiceAccounts. Depois do apply, valide a sincronização
+no Argo CD e remova esses blocos em uma alteração posterior, quando nenhum
+state antigo existir.
+
+O Argo CD e seu repositório GitOps são uma camada separada deste root
+Terraform. O workflow deste arquivo continua validando e aplicando apenas a
+infraestrutura; a reconciliação dos workloads deve ocorrer no pipeline do
+repositório GitOps.
+
 ## Migração do state existente
 
 Não há `moved` blocks e nenhum state foi movido automaticamente. O state do

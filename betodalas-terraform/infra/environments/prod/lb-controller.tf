@@ -1,5 +1,7 @@
-# AWS Load Balancer Controller: transforma Ingress (class "alb") em um ALB público.
-# Permissões via IRSA (IAM Role for Service Account).
+# Permissões AWS para o AWS Load Balancer Controller.
+#
+# O chart e o ServiceAccount são instalados pelo Argo CD. O Terraform cria
+# somente a role IAM que o controller usará via IRSA.
 
 module "lb_controller_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
@@ -14,26 +16,4 @@ module "lb_controller_irsa" {
       namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
     }
   }
-}
-
-resource "helm_release" "aws_lb_controller" {
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  version    = var.lb_controller_chart_version
-  namespace  = "kube-system"
-
-  values = [yamlencode({
-    clusterName = module.eks.cluster_name
-    region      = var.region
-    vpcId       = module.vpc.vpc_id
-    serviceAccount = {
-      name = "aws-load-balancer-controller"
-      annotations = {
-        "eks.amazonaws.com/role-arn" = module.lb_controller_irsa.iam_role_arn
-      }
-    }
-  })]
-
-  depends_on = [module.eks]
 }

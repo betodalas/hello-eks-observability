@@ -148,15 +148,3 @@ variable "cluster_endpoint_public_access_cidrs" {
     error_message = "Todos os CIDRs do endpoint público devem ser válidos."
   }
 }
-
-variable "lb_controller_chart_version" {
-  description = "Versão do chart aws-load-balancer-controller"
-  type        = string
-  default     = "1.13.0"
-}
-
-variable "prometheus_stack_chart_version" {
-  description = "Versão do chart kube-prometheus-stack (confira a mais recente com: helm search repo prometheus-community/kube-prometheus-stack)"
-  type        = string
-  default     = "75.15.1"
-}
