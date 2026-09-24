@@ -16,7 +16,7 @@ spec:
           create: true
           name: aws-load-balancer-controller
           annotations:
-            eks.amazonaws.com/role-arn: arn:aws:iam::207131866724:role/hello-observability-prod-lb-controller
+            eks.amazonaws.com/role-arn: arn:aws:iam::207131866724:role/hello-observability-prod-karpenter-controller
         replicaCount: 1
         resources:
           requests:
@@ -25,6 +25,42 @@ spec:
           limits:
             cpu: 100m
             memory: 128Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: oci://public.ecr.aws/karpenter
+    chart: karpenter
+    targetRevision: 1.13.0
+    helm:
+      values: |
+        settings:
+          clusterName: hello-observability-prod
+        serviceAccount:
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::207131866724:role/hello-observability-prod-karpenter-controller
+        controller:
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
@@ -61,45 +97,6 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: karpenter
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: public.ecr.aws/karpenter
-    chart: karpenter
-    targetRevision: 1.13.0
-    helm:
-      values: |
-        crds:
-          install: false
-        settings:
-          clusterName: hello-observability-prod
-        serviceAccount:
-          name: karpenter
-          annotations:
-            eks.amazonaws.com/role-arn: arn:aws:iam::207131866724:role/hello-observability-prod-karpenter-controller
-        controller:
-          resources:
-            requests:
-              cpu: 20m
-              memory: 64Mi
-            limits:
-              cpu: 100m
-              memory: 128Mi
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: karpenter
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
   name: karpenter-nodepool
   namespace: argocd
 spec:
@@ -110,7 +107,7 @@ spec:
     path: gitops/platform/karpenter-nodepool
   destination:
     server: https://kubernetes.default.svc
-    namespace: karpenter
+    namespace: kube-system
   syncPolicy:
     automated:
       prune: true
