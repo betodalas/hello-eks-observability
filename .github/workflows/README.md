@@ -112,3 +112,8 @@ Para prod, o `terraform.tfvars` usa CIDRs, capacidade e prefixo próprios; revis
 esses valores antes do primeiro apply. Mantenha as chaves de `node_groups`
 (como `default`) para preservar endereços de recursos quando um ambiente já
 existir.
+
+O endpoint público do EKS de produção fica desabilitado por padrão; o acesso
+ocorre pelo endpoint privado dentro da VPC. Se for necessário acesso público,
+informe CIDRs públicos reais e controlados em `cluster_endpoint_public_access_cidrs`;
+não use blocos reservados para documentação, como `203.0.113.0/24`.
