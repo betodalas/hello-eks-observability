@@ -33,7 +33,7 @@ spec:
           values: ["spot"]
         - key: node.kubernetes.io/instance-type
           operator: In
-          values: ["t3.small", "t3.medium"]
+          values: ["t3.micro"]
   limits:
     cpu: "2"
   disruption:
