@@ -3,20 +3,12 @@ name: Terraform
 on:
   pull_request:
     paths:
-      - "betodalas-terraform/infra/**/*.tf"
-      - "betodalas-terraform/infra/**/*.hcl"
-      - "betodalas-terraform/infra/**/*.tfvars"
-      - ".github/workflows/terraform.yml"
-      - ".github/workflows/README.md"
+      - "betodalas-terraform/**"
   push:
     branches:
       - main
     paths:
-      - "betodalas-terraform/infra/**/*.tf"
-      - "betodalas-terraform/infra/**/*.hcl"
-      - "betodalas-terraform/infra/**/*.tfvars"
-      - ".github/workflows/terraform.yml"
-      - ".github/workflows/README.md"
+      - "betodalas-terraform/**"
 permissions:
   contents: read
   id-token: write
