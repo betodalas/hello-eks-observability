@@ -32,18 +32,25 @@ variable "user_principal_arns" {
   default = {}
 }
 
-variable "node_instance_types" {
+variable "node_groups" {
+  type = map(object({
+    ami_type       = optional(string, "AL2023_x86_64_STANDARD")
+    instance_types = list(string)
+    capacity_type  = optional(string, "ON_DEMAND")
+    min_size       = number
+    desired_size   = number
+    max_size       = number
+  }))
+}
+
+variable "cluster_endpoint_public_access" {
+  type = bool
+}
+
+variable "cluster_endpoint_private_access" {
+  type = bool
+}
+
+variable "cluster_endpoint_public_access_cidrs" {
   type = list(string)
-}
-
-variable "node_min_size" {
-  type = number
-}
-
-variable "node_desired_size" {
-  type = number
-}
-
-variable "node_max_size" {
-  type = number
 }

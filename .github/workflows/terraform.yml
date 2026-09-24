@@ -2,9 +2,14 @@ name: Terraform
 
 on:
   pull_request:
+    branches:
+      - main
+      - dev
   push:
     branches:
       - main
+      - dev
+
 permissions:
   contents: read
   id-token: write
@@ -17,7 +22,6 @@ concurrency:
 env:
   TF_IN_AUTOMATION: true
   TF_INPUT: false
-  TF_WORKING_DIR: betodalas-terraform/infra
   TF_VERSION: "1.10.5"
   AWS_REGION: us-east-1
 
@@ -28,13 +32,10 @@ jobs:
     outputs:
       terraform: ${{ steps.filter.outputs.terraform }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Detect changed paths
-        id: filter
+      - id: filter
         uses: dorny/paths-filter@v3
         with:
           filters: |
@@ -42,161 +43,88 @@ jobs:
               - "betodalas-terraform/**"
 
   plan:
-    name: Terraform plan
+    name: Plan (${{ github.base_ref }})
     needs: changes
-    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: betodalas-terraform/infra/environments/${{ github.base_ref == 'main' && 'prod' || 'dev' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_TERRAFORM_PLAN_ROLE_ARN }}
-          role-session-name: github-actions-terraform-plan
-
+          role-session-name: github-actions-terraform-plan-${{ github.base_ref }}
       - name: Terraform init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
-            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="encrypt=true" \
-            -backend-config="use_lockfile=true"
-
+        run: terraform init -backend-config=backend.hcl -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
       - name: Terraform format check
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: betodalas-terraform/infra
         run: terraform fmt -check -recursive
-
       - name: Terraform validate
-        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
-
       - name: Terraform plan
-        working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           TF_VAR_github_repo: ${{ github.repository }}
-        run: |
-          set -o pipefail
-          terraform plan -lock=false -no-color -out=tfplan 2>&1 | tee plan.txt
-
+        run: terraform plan -lock=false -no-color -out=tfplan 2>&1 | tee plan.txt
       - name: Comment plan on pull request
-        if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         env:
-          PLAN_FILE: ${{ github.workspace }}/betodalas-terraform/infra/plan.txt
+          PLAN_FILE: ${{ github.workspace }}/betodalas-terraform/infra/environments/${{ github.base_ref == 'main' && 'prod' || 'dev' }}/plan.txt
+          ENVIRONMENT: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
         with:
           script: |
             const fs = require("fs");
-            const marker = "<!-- terraform-plan -->";
-            const plan = fs.existsSync(process.env.PLAN_FILE)
-              ? fs.readFileSync(process.env.PLAN_FILE, "utf8")
-              : "Terraform plan did not produce output.";
-            const body = [
-              marker,
-              "## Terraform plan",
-              "",
-              "<details><summary>Show plan</summary>",
-              "",
-              "```terraform",
-              plan.length > 60000 ? `${plan.slice(0, 60000)}\n... output truncated` : plan,
-              "```",
-              "",
-              "</details>",
-              "",
-              `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            ].join("\n");
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-            const existing = comments.find(comment =>
-              comment.user.type === "Bot" && comment.body.includes(marker)
-            );
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body
-              });
-            }
-
+            const marker = `<!-- terraform-plan-${process.env.ENVIRONMENT} -->`;
+            const plan = fs.existsSync(process.env.PLAN_FILE) ? fs.readFileSync(process.env.PLAN_FILE, "utf8") : "Terraform plan did not produce output.";
+            const body = [marker, `## Terraform plan (${process.env.ENVIRONMENT})`, "", "<details><summary>Show plan</summary>", "", "```terraform", plan.length > 60000 ? `${plan.slice(0, 60000)}\n... output truncated` : plan, "```", "", "</details>", "", `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`].join("\n");
+            const { data: comments } = await github.rest.issues.listComments({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number });
+            const existing = comments.find(comment => comment.user.type === "Bot" && comment.body.includes(marker));
+            if (existing) await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            else await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
       - name: Upload plan
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-plan-${{ github.run_id }}
-          path: |
-            betodalas-terraform/infra/tfplan
-            betodalas-terraform/infra/plan.txt
+          name: terraform-plan-${{ github.base_ref }}-${{ github.run_id }}
+          path: betodalas-terraform/infra/environments/${{ github.base_ref == 'main' && 'prod' || 'dev' }}/plan.txt
           retention-days: 7
 
   apply:
-    name: Terraform apply
+    name: Apply (${{ github.ref_name }})
     needs: changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.terraform == 'true'
+    if: github.event_name == 'push' && needs.changes.outputs.terraform == 'true'
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    defaults:
+      run:
+        working-directory: betodalas-terraform/infra/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_TERRAFORM_APPLY_ROLE_ARN }}
-          role-session-name: github-actions-terraform-apply
-
+          role-session-name: github-actions-terraform-apply-${{ github.ref_name }}
       - name: Terraform init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
-            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="encrypt=true" \
-            -backend-config="use_lockfile=true"
-
+        run: terraform init -backend-config=backend.hcl -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
       - name: Terraform format check
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: betodalas-terraform/infra
         run: terraform fmt -check -recursive
-
       - name: Terraform validate
-        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
-
       - name: Terraform plan
-        working-directory: ${{ env.TF_WORKING_DIR }}
         env:
           TF_VAR_github_repo: ${{ github.repository }}
         run: terraform plan -out=tfplan
-
       - name: Terraform apply
-        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve tfplan

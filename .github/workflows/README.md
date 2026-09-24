@@ -1,137 +1,114 @@
 # Deploy do Terraform
 
-O workflow `terraform.yml` usa OIDC para autenticar o GitHub Actions na AWS,
-sem armazenar access keys no GitHub.
+A infraestrutura tem dois roots independentes:
 
-## Preparação única
-
-1. Execute o Terraform em `betodalas-terraform/bootstrap/` localmente, com credenciais AWS
-   administrativas. Esse passo cria o bucket S3 do state e a role
-   `hello-observability-terraform-plan` e
-   `hello-observability-terraform-apply`.
-   Para o OIDC deste repositório, informe também os IDs numéricos:
-
-   ```bash
-   terraform -chdir=betodalas-terraform/bootstrap apply \
-     -var='github_repo=betodalas/hello-eks-observability' \
-     -var='github_owner_id=1109865' \
-     -var='github_repository_id=1384209664'
-   ```
-2. No GitHub, crie o Environment `production` e habilite aprovação obrigatória
-   para o job de `apply`, adicionando somente `@betodalas` como required
-   reviewer.
-3. Em **Repository variables** (não dentro do Environment), cadastre:
-
-   - `AWS_TERRAFORM_PLAN_ROLE_ARN`: ARN emitido por
-     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_plan_role_arn`
-   - `TF_STATE_BUCKET`: nome do bucket criado pelo bootstrap
-   - `TF_STATE_KEY`: `eks/terraform.tfstate`
-
-   O job de `plan` precisa dessas variables em um Pull Request. Ele não usa
-   o Environment `production`, pois sua role OIDC aceita somente o subject
-   `pull_request`.
-4. Em **Environment variables** do Environment `production`, cadastre:
-
-   - `AWS_TERRAFORM_APPLY_ROLE_ARN`: ARN emitido por
-     `terraform -chdir=betodalas-terraform/bootstrap output -raw terraform_apply_role_arn`
-
-O repositório usado no bootstrap deve ser exatamente o repositório que contém
-este workflow. O valor é validado pela trust policy do OIDC.
-
-## Proteção da branch `main`
-
-O arquivo `.github/CODEOWNERS` define `@betodalas` como o code owner de todo o
-repositório. Para tornar essa aprovação obrigatória antes de qualquer merge,
-configure em **Settings > Branches > Add branch protection rule** para `main`:
-
-- exigir um Pull Request antes do merge;
-- exigir pelo menos 1 aprovação;
-- exigir aprovação de um Code Owner;
-- exigir que os checks do workflow `Terraform / Terraform plan` passem;
-- exigir branch atualizada antes do merge;
-- bloquear force push e exclusão da branch;
-- adicionar `Repository administrators` à bypass list para permitir que você
-  faça merge do próprio PR sem aprovação.
-
-No Environment `production`, em **Settings > Environments**, configure
-`@betodalas` como o único required reviewer. Assim, o merge só ocorre depois
-da sua aprovação do PR e o `apply` só ocorre depois de uma aprovação separada
-do deployment. A aprovação do PR não substitui a aprovação do Environment.
-
-## Fluxo
-
-- Pull requests executam `fmt`, `validate` e `plan` em `betodalas-terraform/infra`;
-  o resultado é publicado
-  em um comentário atualizável no próprio PR.
-- Pushes em `main` executam `plan` e depois aguardam a aprovação obrigatória do
-  Environment `production` antes de executar `apply`.
-- O `apply` só pode assumir a role através do Environment `production`; a
-  aprovação do comentário do plan, por si só, não concede acesso à AWS.
-
-Ao abrir ou atualizar um PR, aguarde o job de plan terminar e confira o
-comentário `Terraform plan` antes de fazer o merge.
-- O state é armazenado no S3 e usa o lock nativo (`use_lockfile`), disponível
-  no Terraform 1.10 ou posterior.
-
-Antes do primeiro `apply`, confira também os valores de
-`betodalas-terraform/infra/terraform.tfvars`, especialmente `github_repo`,
-e `admin_principal_arns`. Essa última é opcional: quando não informada, somente
-as roles do pipeline têm acesso administrativo ao cluster.
-
-O perfil padrão dos nós é `t3.micro` com um único nó para permitir o bootstrap
-em contas com restrição Free Tier. Esse tamanho não é suficiente para garantir
-a execução do kube-prometheus-stack e da aplicação. Em uma conta sem essa
-restrição, sobrescreva `node_instance_types`, `node_min_size`,
-`node_desired_size` e `node_max_size` no `terraform.tfvars` antes do apply,
-por exemplo:
-
-```hcl
-node_instance_types = ["t3.large"]
-node_min_size       = 2
-node_desired_size   = 2
-node_max_size       = 4
+```text
+betodalas-terraform/infra/
+├── modules/{vpc,eks,iam}/       # módulos compartilhados
+└── environments/
+    ├── dev/                     # state eks/dev/terraform.tfstate
+    └── prod/                    # state eks/prod/terraform.tfstate
 ```
 
-## Organização do Terraform
+Cada ambiente contém `main.tf`, `providers.tf`, `versions.tf`, `variables.tf`,
+`outputs.tf`, `backend.hcl` e `terraform.tfvars`. O root `infra/` não contém
+configuração Terraform ativa; `bootstrap/` permanece separado e inalterado.
 
-Os recursos da infraestrutura ficam separados em módulos locais dentro de
-`betodalas-terraform/infra/modules/`:
+## Comandos locais
 
-- `vpc`: rede, subnets e NAT Gateway;
-- `eks`: cluster, node groups e EKS Access Entries. As permissões do cluster
-  ficam junto do cluster porque dependem da API do EKS;
-- `iam`: criação opcional de usuários IAM. Usuários declarados em `iam_users`
-  recebem uma Access Entry administrativa no EKS, mas o módulo não cria chaves
-  de acesso.
-
-Para criar um usuário IAM e permitir seu acesso administrativo ao cluster,
-adicione-o em `betodalas-terraform/infra/terraform.tfvars`:
-
-```hcl
-iam_users = {
-  roberto = {
-    tags = {
-      Owner = "roberto"
-    }
-  }
-}
-```
-
-Para usuários ou roles que já existem, continue usando `admin_principal_arns`.
-
-As variáveis, outputs e recursos de cada módulo ficam em arquivos separados
-(`variables.tf`, `outputs.tf` e `main.tf`). Como a migração do state será
-manual, execute os comandos abaixo localmente, com o backend configurado, antes
-de rodar o pipeline:
+Depois de executar o bootstrap e preencher o bucket no `backend.hcl`:
 
 ```bash
-terraform -chdir=betodalas-terraform/infra state mv \
-  'module.vpc' 'module.vpc.module.vpc'
+terraform -chdir=betodalas-terraform/infra/environments/dev init -backend-config=backend.hcl
+terraform -chdir=betodalas-terraform/infra/environments/dev validate
+terraform -chdir=betodalas-terraform/infra/environments/dev plan
 
-terraform -chdir=betodalas-terraform/infra state mv \
-  'module.eks' 'module.eks.module.eks'
+terraform -chdir=betodalas-terraform/infra/environments/prod init -backend-config=backend.hcl
+terraform -chdir=betodalas-terraform/infra/environments/prod validate
+terraform -chdir=betodalas-terraform/infra/environments/prod plan
 ```
 
-Depois, execute `terraform plan` localmente e confirme que não existem
-operações `destroy` ou `create` para a VPC e o EKS. O state remoto deve estar
-salvo e desbloqueado antes do primeiro `plan` do pipeline.
+Para uma validação sem AWS e sem backend remoto (usada também para smoke tests):
+
+```bash
+terraform -chdir=betodalas-terraform/infra/environments/dev init -backend=false
+terraform -chdir=betodalas-terraform/infra/environments/dev validate
+terraform -chdir=betodalas-terraform/infra/environments/prod init -backend=false
+terraform -chdir=betodalas-terraform/infra/environments/prod validate
+```
+
+O bucket e `use_lockfile = true` permanecem em cada `backend.hcl`. Configure a
+mesma variável `TF_STATE_BUCKET` usada pelo bootstrap no GitHub. As roles do
+workflow continuam usando o prefixo `hello-observability` criado pelo
+bootstrap; o `project` de produção pode ser diferente porque
+`terraform_role_project` controla essa referência. O workflow executa o plan
+somente para o ambiente correspondente ao destino do Pull Request: `dev` para
+PRs destinados a `dev` e `prod` para PRs destinados a `main`. Em pushes para
+`dev`, aplica somente `dev`; em pushes para `main`, aplica somente `prod`.
+Cada execução usa o diretório e o state do próprio ambiente. O apply de prod é
+protegido pelo Environment `production` e seus required reviewers; o apply de
+dev usa o Environment `development`.
+
+## Fronteira entre Terraform e Argo CD
+
+O Terraform deste repositório é responsável somente pela infraestrutura AWS e
+pela configuração base do EKS:
+
+- VPC, subnets, NAT Gateway e security groups;
+- cluster EKS e managed node groups;
+- EKS managed add-ons;
+- IAM, OIDC, Access Entries e roles usadas por controllers;
+- repositório ECR e recursos necessários para o bootstrap.
+
+O Terraform não instala mais charts nem recursos de workload no Kubernetes.
+Os providers `helm` e `kubernetes` não fazem parte dos roots de ambiente.
+
+O Argo CD deve ser o único responsável pelo estado dentro do cluster,
+instalando via Helm e reconciliando:
+
+- AWS Load Balancer Controller;
+- Karpenter;
+- Prometheus, Grafana e Alertmanager;
+- dashboards, regras e monitores;
+- aplicações, Services e Ingresses.
+
+As roles IAM necessárias aos controllers continuam sendo criadas pelo
+Terraform. Por exemplo, `load_balancer_controller_role_arn` é exposto como
+output para ser usado na configuração do ServiceAccount gerenciado pelo Argo
+CD. Assim, cada recurso tem um único owner e Terraform e Argo CD não disputam
+o mesmo estado.
+
+O Argo CD e seu repositório GitOps são uma camada separada deste root
+Terraform. O workflow deste arquivo continua validando e aplicando apenas a
+infraestrutura; a reconciliação dos workloads deve ocorrer no pipeline do
+repositório GitOps.
+
+## Migração do state existente
+
+Não há `moved` blocks e nenhum state foi movido automaticamente. O state do
+antigo root `infra/` deve ser copiado explicitamente para dev
+(`eks/dev/terraform.tfstate`), pois `environments/dev` preserva o projeto e os
+nomes originais. Faça essa operação uma única vez, com o state desbloqueado,
+antes do primeiro plan remoto:
+
+```bash
+# Execute enquanto o antigo root ainda estiver disponível (por exemplo, em um
+# worktree da revisão anterior), usando seu backend antigo.
+terraform -chdir=betodalas-terraform/infra state pull > betodalas-terraform/infra/infra-state-backup.json
+
+# Inicialize o novo root sem migrar automaticamente o backend e publique o
+# backup no novo objeto S3. O backend.hcl de dev contém key = eks/dev/terraform.tfstate.
+terraform -chdir=betodalas-terraform/infra/environments/dev init -backend-config=backend.hcl
+terraform -chdir=betodalas-terraform/infra/environments/dev state push ../../infra-state-backup.json
+terraform -chdir=betodalas-terraform/infra/environments/dev plan
+```
+
+Se o arquivo foi salvo em outro diretório, ajuste o caminho do `state push`.
+Confirme o backup e o plan antes de remover o state antigo. Não execute esses
+comandos no CI e não use `terraform state mv` para alterar endereços: os
+endereços dos módulos foram preservados.
+
+Para prod, o `terraform.tfvars` usa CIDRs, capacidade e prefixo próprios; revise
+esses valores antes do primeiro apply. Mantenha as chaves de `node_groups`
+(como `default`) para preservar endereços de recursos quando um ambiente já
+existir.
