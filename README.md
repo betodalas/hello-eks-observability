@@ -13,9 +13,9 @@ Este projeto provisiona um EKS econômico e entrega a aplicação pelo GitOps:
 
 O `terraform apply` cria somente a infraestrutura AWS. Depois, o Argo CD é
 instalado manualmente a partir de uma máquina com acesso ao endpoint do EKS e
-as Applications são aplicadas por
-[gitops/argocd/applications.yaml](./gitops/argocd/applications.yaml). O
-workflow de aplicação constrói [app/](./app/), publica no ECR e altera
+as Applications são aplicadas pelos manifests em
+[gitops/tools/](./gitops/tools/) e [gitops/apps/](./gitops/apps/). O workflow
+de aplicação constrói [app/](./app/), publica no ECR e altera
 `gitops/apps/hello-app/kustomization.yaml`; essa alteração dispara a
 reconciliação automática do Argo CD.
 
@@ -43,8 +43,8 @@ demonstração. Em produção, aumente capacidade e retenção.
 4. Faça push de uma alteração em `app/`. O workflow `.github/workflows/app.yml`
    publicará a imagem e fará o commit do novo SHA no diretório GitOps.
 
-Depois de instalar o Argo CD manualmente, substitua os dois placeholders de
-ARN em `gitops/argocd/applications.yaml` pelos outputs Terraform:
+Depois de instalar o Argo CD, substitua os dois placeholders de ARN nos
+manifests em `gitops/tools/` pelos outputs Terraform:
 
 ```bash
 terraform -chdir=betodalas-terraform/infra/environments/prod output \
@@ -53,12 +53,27 @@ terraform -chdir=betodalas-terraform/infra/environments/prod output \
   karpenter_controller_role_arn
 ```
 
-Então aplique as Applications:
+No painel do Argo CD, crie a Application inicial `platform` com:
 
-```bash
-kubectl apply -f gitops/argocd/karpenter-repository.yaml
-kubectl apply -f gitops/argocd/applications.yaml
-```
+| Campo | Valor |
+| --- | --- |
+| Application Name | `platform` |
+| Project | `default` |
+| Repository URL | `https://github.com/betodalas/hello-eks-observability.git` |
+| Revision | `main` |
+| Path | `gitops` |
+| Cluster URL | `https://kubernetes.default.svc` |
+| Namespace | `argocd` |
+| Directory Recurse | habilitado |
+
+Essa configuração corresponde a `gitops/argocd/root-application.yaml`. Depois
+de salvar, o Argo CD cria e sincroniza automaticamente as Applications
+separadas em `tools/` e `apps/`. Não é necessário aplicar manifests das
+ferramentas ou da aplicação com `kubectl`.
+
+O Argo CD consulta o repositório periodicamente. Portanto, depois que essa
+Application raiz estiver criada, um merge na `main` será reconciliado sem
+executar novos comandos de deploy.
 
 ## Acesso para a apresentação
 
