@@ -17,8 +17,9 @@ sem armazenar access keys no GitHub.
      -var='github_owner_id=1109865' \
      -var='github_repository_id=1384209664'
    ```
-2. No GitHub, crie o Environment `production` e, de preferência, habilite
-   aprovação obrigatória para o job de `apply`.
+2. No GitHub, crie o Environment `production` e habilite aprovação obrigatória
+   para o job de `apply`, adicionando somente `@betodalas` como required
+   reviewer.
 3. Em **Repository variables** (não dentro do Environment), cadastre:
 
    - `AWS_TERRAFORM_PLAN_ROLE_ARN`: ARN emitido por
@@ -37,12 +38,32 @@ sem armazenar access keys no GitHub.
 O repositório usado no bootstrap deve ser exatamente o repositório que contém
 este workflow. O valor é validado pela trust policy do OIDC.
 
+## Proteção da branch `main`
+
+O arquivo `.github/CODEOWNERS` define `@betodalas` como o code owner de todo o
+repositório. Para tornar essa aprovação obrigatória antes de qualquer merge,
+configure em **Settings > Branches > Add branch protection rule** para `main`:
+
+- exigir um Pull Request antes do merge;
+- exigir pelo menos 1 aprovação;
+- exigir aprovação de um Code Owner;
+- exigir que os checks do workflow `Terraform / Terraform plan` passem;
+- exigir branch atualizada antes do merge;
+- bloquear force push e exclusão da branch;
+- adicionar `Repository administrators` à bypass list para permitir que você
+  faça merge do próprio PR sem aprovação.
+
+No Environment `production`, em **Settings > Environments**, configure
+`@betodalas` como o único required reviewer. Assim, o merge só ocorre depois
+da sua aprovação do PR e o `apply` só ocorre depois de uma aprovação separada
+do deployment. A aprovação do PR não substitui a aprovação do Environment.
+
 ## Fluxo
 
 - Pull requests executam `fmt`, `validate` e `plan` em `betodalas-terraform/infra`;
   o resultado é publicado
   em um comentário atualizável no próprio PR.
-- Pushes em `main` executam `plan` e depois aguardam a aprovação manual do
+- Pushes em `main` executam `plan` e depois aguardam a aprovação obrigatória do
   Environment `production` antes de executar `apply`.
 - O `apply` só pode assumir a role através do Environment `production`; a
   aprovação do comentário do plan, por si só, não concede acesso à AWS.
