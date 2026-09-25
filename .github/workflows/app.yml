@@ -239,9 +239,16 @@ jobs:
                   prometheus:
                     address: http://monitoring-kube-prometheus-prometheus.kube-system.svc:9090
                     query: |
-                      sum(rate(${METRIC}_requests_total{code="200", namespace="${APP}", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
-                      /
-                      clamp_min(sum(rate(${METRIC}_requests_total{namespace="${APP}", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m])), 1)
+                      (
+                        sum(rate(${METRIC}_requests_total{code="200", namespace="${APP}", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+                        /
+                        sum(rate(${METRIC}_requests_total{namespace="${APP}", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+                      )
+                      OR on() vector(1)
+                      # Sem tráfego real na janela, a divisão não retorna série
+                      # (den=0) e o "OR on() vector(1)" preenche com 1 (aprova
+                      # por padrão). Com tráfego real, prevalece a taxa de
+                      # sucesso calculada de fato.
           EOF
 
           cat > "$DIR/kustomization.yaml" <<EOF
