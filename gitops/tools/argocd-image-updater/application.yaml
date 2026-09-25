@@ -34,6 +34,10 @@ spec:
         extraEnv:
           - name: AWS_REGION
             value: us-east-1
+          # readOnlyRootFilesystem=true means /app/.aws is not writable; point the
+          # AWS CLI at the writable /tmp emptyDir so ecr-login.sh can run.
+          - name: HOME
+            value: /tmp
         resources:
           requests:
             cpu: 20m
@@ -50,3 +54,17 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+---
+# argocd-image-updater v1.x moved to a CRD-based model: the controller no longer
+# scans Applications for argocd-image-updater.argoproj.io/* annotations unless an
+# ImageUpdater CR tells it to. This CR keeps using the existing annotation-based
+# configuration already set on the hello-app Application.
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: hello-app
+  namespace: argocd
+spec:
+  applicationRefs:
+    - namePattern: hello-app
+      useAnnotations: true
