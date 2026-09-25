@@ -214,17 +214,25 @@ jobs:
 
           echo "created=true" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and push new application manifests
+      - name: Commit and open pull request with new application manifests
         if: steps.scaffold.outputs.created == 'true'
         env:
-          GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
           APP: ${{ matrix.app }}
         run: |
+          # main is protected (requires PR + review + status checks) and
+          # GITOPS_PAT has no bypass, so we can't push straight to main here.
+          # Push to a dedicated branch and open a PR for a human to merge.
+          BRANCH="automation/scaffold-${APP}-${{ github.run_id }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          git checkout -b "$BRANCH"
           git add "gitops/apps/${APP}"
           git commit -m "feat: scaffold gitops manifests for ${APP}"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "feat: scaffold gitops manifests for ${APP}" \
+            --body "Automatically generated GitOps manifests (Application, Deployment, Service, Ingress, Kustomization) for the new application \`${APP}\`, detected under \`app/${APP}\`. Merge this PR to let ArgoCD create the application and roll out the image already pushed to ECR." \
+            --base main \
+            --head "$BRANCH"
