@@ -1,14 +1,26 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: hello-teste
   labels:
     app.kubernetes.io/name: hello-teste
 spec:
-  replicas: 1
+  # 2 réplicas para que a divisão canary (setWeight) tenha efeito real:
+  # com 1 réplica só, não há como rotear uma fração do tráfego pro canary.
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: hello-teste
+  strategy:
+    canary:
+      # Sem trafficRouting: o split de tráfego é aproximado, proporcional à
+      # quantidade de pods estável/canary por trás do Service (não é um
+      # split exato de porcentagem via ALB).
+      steps:
+        - setWeight: 50
+        - pause: { duration: 1m }
+        - setWeight: 100
+        - pause: {}
   template:
     metadata:
       labels:
