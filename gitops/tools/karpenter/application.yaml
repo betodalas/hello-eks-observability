@@ -45,11 +45,11 @@ spec:
         controller:
           resources:
             requests:
-              cpu: 20m
-              memory: 64Mi
+              cpu: 200m
+              memory: 256Mi
             limits:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 500m
+              memory: 512Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: karpenter
