@@ -46,7 +46,7 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_TERRAFORM_APPLY_ROLE_ARN }}
-          role-session-name: github-actions-app-${{ matrix.app }}-${{ github.sha }}
+          role-session-name: gha-app-${{ matrix.app }}-${{ github.run_id }}
       - name: Login to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
