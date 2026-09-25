@@ -11,50 +11,215 @@ on:
 permissions:
   contents: write
   id-token: write
-  pull-requests: write
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: hello-observability-prod/hello-app
+  ECR_REPOSITORY_PREFIX: hello-observability-prod
 
 jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.detect.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        run: |
+          apps=$(find app -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "Detected apps: ${apps}"
+          echo "apps=${apps}" >> "$GITHUB_OUTPUT"
+
   build-and-deploy:
+    needs: detect
+    if: needs.detect.outputs.apps != '[]'
+    strategy:
+      matrix:
+        app: ${{ fromJson(needs.detect.outputs.apps) }}
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_TERRAFORM_APPLY_ROLE_ARN }}
-          role-session-name: github-actions-app-${{ github.sha }}
+          role-session-name: github-actions-app-${{ matrix.app }}-${{ github.sha }}
       - name: Login to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
+      - name: Ensure ECR repository exists
+        env:
+          REPO: ${{ env.ECR_REPOSITORY_PREFIX }}/${{ matrix.app }}
+        run: |
+          if ! aws ecr describe-repositories --repository-names "$REPO" >/dev/null 2>&1; then
+            aws ecr create-repository \
+              --repository-name "$REPO" \
+              --image-tag-mutability IMMUTABLE \
+              --image-scanning-configuration scanOnPush=true \
+              --encryption-configuration encryptionType=AES256
+          fi
       - name: Build and push image
+        id: build
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPO: ${{ env.ECR_REPOSITORY_PREFIX }}/${{ matrix.app }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build --tag "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" app
-          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-      - name: Update GitOps image tag
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          sed -i "s/newTag: .*/newTag: ${IMAGE_TAG}/" gitops/apps/hello-app/kustomization.yaml
-      - name: Create GitOps pull request
-        id: gitops-pr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: automation/update-hello-app-image
-          base: main
-          delete-branch: false
-          commit-message: "chore: deploy hello-app ${{ github.sha }}"
-          title: "chore: deploy hello-app ${{ github.sha }}"
-          body: |
-            Update the hello-app GitOps image tag to `${{ github.sha }}`.
+          docker build --tag "$REGISTRY/$REPO:$IMAGE_TAG" "app/${{ matrix.app }}"
+          docker push "$REGISTRY/$REPO:$IMAGE_TAG"
+          echo "image=$REGISTRY/$REPO" >> "$GITHUB_OUTPUT"
 
-            This pull request was created automatically by the application build workflow.
+      # Aplicações já existentes em gitops/apps/<nome> não precisam de mais nada:
+      # o ArgoCD Image Updater detecta a nova tag no ECR e atualiza o Kubernetes
+      # (e o git, via write-back) automaticamente. Este passo só age quando a
+      # pasta gitops/apps/<nome> ainda não existe (aplicação nova).
+      - name: Scaffold GitOps manifests for new application
+        id: scaffold
+        env:
+          APP: ${{ matrix.app }}
+          IMAGE: ${{ steps.build.outputs.image }}
+          IMAGE_TAG: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          DIR="gitops/apps/${APP}"
+          if [ -d "$DIR" ]; then
+            echo "Application '${APP}' already exists in GitOps; ArgoCD Image Updater handles the rollout."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Application '${APP}' is new. Scaffolding GitOps manifests..."
+          mkdir -p "$DIR"
+
+          cat > "$DIR/deployment.yaml" <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ${APP}
+            labels:
+              app.kubernetes.io/name: ${APP}
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: ${APP}
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: ${APP}
+              spec:
+                containers:
+                  - name: ${APP}
+                    image: ${APP}:${IMAGE_TAG}
+                    ports:
+                      - name: http
+                        containerPort: 8080
+                    readinessProbe:
+                      httpGet: { path: /healthz, port: http }
+                    livenessProbe:
+                      httpGet: { path: /healthz, port: http }
+                    resources:
+                      requests: { cpu: 10m, memory: 32Mi }
+                      limits: { cpu: 100m, memory: 64Mi }
+          EOF
+
+          cat > "$DIR/service.yaml" <<EOF
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: ${APP}
+            labels:
+              app.kubernetes.io/name: ${APP}
+          spec:
+            selector:
+              app.kubernetes.io/name: ${APP}
+            ports:
+              - name: http
+                port: 80
+                targetPort: http
+          EOF
+
+          cat > "$DIR/ingress.yaml" <<EOF
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: ${APP}
+            annotations:
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+          spec:
+            ingressClassName: alb
+            rules:
+              - http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: ${APP}
+                          port:
+                            name: http
+          EOF
+
+          cat > "$DIR/kustomization.yaml" <<EOF
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+            - deployment.yaml
+            - service.yaml
+            - ingress.yaml
+          images:
+            - name: ${APP}
+              newName: ${IMAGE}
+              newTag: ${IMAGE_TAG}
+          EOF
+
+          cat > "$DIR/application.yaml" <<EOF
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: ${APP}
+            namespace: argocd
+            annotations:
+              argocd-image-updater.argoproj.io/image-list: ${APP}=${IMAGE}
+              argocd-image-updater.argoproj.io/${APP}.update-strategy: newest-build
+              argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-creds
+              argocd-image-updater.argoproj.io/write-back-target: kustomization
+              argocd-image-updater.argoproj.io/git-branch: main
+          spec:
+            project: default
+            source:
+              repoURL: https://github.com/${REPOSITORY}.git
+              targetRevision: main
+              path: gitops/apps/${APP}
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: ${APP}
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+              syncOptions:
+                - CreateNamespace=true
+          EOF
+
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push new application manifests
+        if: steps.scaffold.outputs.created == 'true'
+        env:
+          GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
+          APP: ${{ matrix.app }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
+          git add "gitops/apps/${APP}"
+          git commit -m "feat: scaffold gitops manifests for ${APP}"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
