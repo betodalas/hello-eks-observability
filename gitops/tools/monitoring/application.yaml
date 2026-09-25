@@ -51,3 +51,8 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # The kube-prometheus-stack CRDs (Prometheus, Alertmanager, ThanosRuler,
+      # ScrapeConfig) are large enough that client-side apply's
+      # last-applied-configuration annotation exceeds etcd's 262144-byte
+      # limit, failing the sync. Server-side apply avoids that annotation.
+      - ServerSideApply=true
