@@ -17,11 +17,11 @@ cluster_endpoint_private_access      = true
 cluster_endpoint_public_access_cidrs = ["179.159.253.66/32", "170.246.83.27/32"]
 
 node_groups = {
-  default = {
+  system = {
     instance_types = ["t3.large"]
     capacity_type  = "SPOT"
-    min_size       = 3
-    desired_size   = 3
-    max_size       = 3
+    min_size       = 1
+    desired_size   = 1
+    max_size       = 1
   }
 }
