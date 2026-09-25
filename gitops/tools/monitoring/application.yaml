@@ -22,6 +22,19 @@ spec:
               memory: 128Mi
           service:
             type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: alb
+            annotations:
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+            # No hosts set: the chart then emits a single host-less rule
+            # matching any Host header, giving Grafana its own ALB (separate
+            # from each app's ALB) reachable at "/" on that load balancer's
+            # DNS name, same pattern used by app ingresses.
+            path: /
+            pathType: Prefix
         prometheus:
           prometheusSpec:
             retention: 2h
@@ -51,3 +64,8 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # The kube-prometheus-stack CRDs (Prometheus, Alertmanager, ThanosRuler,
+      # ScrapeConfig) are large enough that client-side apply's
+      # last-applied-configuration annotation exceeds etcd's 262144-byte
+      # limit, failing the sync. Server-side apply avoids that annotation.
+      - ServerSideApply=true
