@@ -94,6 +94,10 @@ jobs:
           echo "Application '${APP}' is new. Scaffolding GitOps manifests..."
           mkdir -p "$DIR"
 
+          # Nomes de métrica Prometheus não podem ter hífen; "hello-teste"
+          # vira "hello_teste" pro prefixo da métrica <metric>_requests_total.
+          METRIC="${APP//-/_}"
+
           cat > "$DIR/rollout.yaml" <<EOF
           apiVersion: argoproj.io/v1alpha1
           kind: Rollout
@@ -116,9 +120,20 @@ jobs:
                 # do Service (não é um split exato de porcentagem via ALB).
                 steps:
                   - setWeight: 50
-                  - pause: { duration: 1m }
+                  # Analisa a taxa de sucesso (respostas HTTP 200) só dos
+                  # pods do canary via Prometheus. Se ficar abaixo do
+                  # successCondition, o Rollout aborta sozinho e volta pro
+                  # stable; se passar, promove automaticamente pro próximo
+                  # step — sem gate manual. Requer que a aplicação exponha
+                  # em /metrics um contador \`<app>_requests_total{code="<n>"}\`.
+                  - analysis:
+                      templates:
+                        - templateName: ${APP}-success-rate
+                      args:
+                        - name: canary-hash
+                          valueFrom:
+                            podTemplateHashValue: Latest
                   - setWeight: 100
-                  - pause: {}
             template:
               metadata:
                 labels:
@@ -178,6 +193,57 @@ jobs:
                             name: http
           EOF
 
+          cat > "$DIR/servicemonitor.yaml" <<EOF
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: ${APP}
+            labels:
+              app.kubernetes.io/name: ${APP}
+              # kube-prometheus-stack só descobre ServiceMonitors com este
+              # label (release = nome da Application/Helm release "monitoring").
+              release: monitoring
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: ${APP}
+            # Propaga o label que o Argo Rollouts coloca nos pods (identifica
+            # canary x stable) pras métricas coletadas, pra o AnalysisTemplate
+            # conseguir filtrar só os pods do canary.
+            podTargetLabels:
+              - rollouts-pod-template-hash
+            endpoints:
+              - port: http
+                path: /metrics
+                interval: 15s
+          EOF
+
+          cat > "$DIR/analysistemplate.yaml" <<EOF
+          apiVersion: argoproj.io/v1alpha1
+          kind: AnalysisTemplate
+          metadata:
+            name: ${APP}-success-rate
+          spec:
+            args:
+              # Preenchido automaticamente pelo Rollout com o hash do
+              # ReplicaSet canary, pra medir métricas só dos pods novos.
+              - name: canary-hash
+            metrics:
+              - name: success-rate
+                # 5 medições de 30s (2m30s no total) antes de decidir.
+                count: 5
+                interval: 30s
+                successCondition: result[0] >= 0.95
+                failureLimit: 1
+                provider:
+                  prometheus:
+                    address: http://monitoring-kube-prometheus-prometheus.kube-system.svc:9090
+                    query: |
+                      sum(rate(${METRIC}_requests_total{code="200", namespace="${APP}", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+                      /
+                      clamp_min(sum(rate(${METRIC}_requests_total{namespace="${APP}", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m])), 1)
+          EOF
+
           cat > "$DIR/kustomization.yaml" <<EOF
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
@@ -185,6 +251,8 @@ jobs:
             - rollout.yaml
             - service.yaml
             - ingress.yaml
+            - servicemonitor.yaml
+            - analysistemplate.yaml
           images:
             - name: ${APP}
               newName: ${IMAGE}

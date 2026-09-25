@@ -4,6 +4,8 @@ resources:
   - rollout.yaml
   - service.yaml
   - ingress.yaml
+  - servicemonitor.yaml
+  - analysistemplate.yaml
 images:
   - name: hello-teste
     newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-teste
