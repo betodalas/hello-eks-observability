@@ -54,3 +54,8 @@ variable "cluster_endpoint_private_access" {
 variable "cluster_endpoint_public_access_cidrs" {
   type = list(string)
 }
+
+variable "karpenter_node_role_arn" {
+  type    = string
+  default = null
+}

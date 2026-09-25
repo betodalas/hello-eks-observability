@@ -14,6 +14,13 @@ locals {
       }
     }
   }
+
+  karpenter_node_access = var.karpenter_node_role_arn == null ? {} : {
+    karpenter_node = {
+      principal_arn = var.karpenter_node_role_arn
+      type          = "EC2_LINUX"
+    }
+  }
 }
 
 module "eks" {
@@ -65,6 +72,7 @@ module "eks" {
         }
       }
     },
-    local.admin_access
+    local.admin_access,
+    local.karpenter_node_access
   )
 }

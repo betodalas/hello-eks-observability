@@ -13,4 +13,5 @@ module "eks" {
   cluster_endpoint_public_access       = var.cluster_endpoint_public_access
   cluster_endpoint_private_access      = var.cluster_endpoint_private_access
   cluster_endpoint_public_access_cidrs = var.cluster_endpoint_public_access_cidrs
+  karpenter_node_role_arn              = aws_iam_role.karpenter_node.arn
 }
