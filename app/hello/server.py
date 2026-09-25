@@ -18,7 +18,7 @@ class Handler(BaseHTTPRequestHandler):
                 f"hello_requests_total {REQUESTS}\n"
             ).encode()
         else:
-            body = b"Hello from hello!\n"
+            body = b"Hello from hello teste de novo!\n"
 
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4")
