@@ -33,10 +33,7 @@ spec:
           values: ["amd64"]
         - key: karpenter.k8s.aws/instance-category
           operator: In
-          values: ["c", "m", "r"]
-        - key: karpenter.k8s.aws/instance-generation
-          operator: Gt
-          values: ["4"]
+          values: ["t"]
   limits:
     cpu: "100"
   disruption:
