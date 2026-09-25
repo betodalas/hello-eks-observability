@@ -45,34 +45,42 @@ jobs:
   plan:
     name: Terraform plan
     needs: changes
-    if: github.event_name == 'pull_request' && needs.changes.outputs.terraform == 'true'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: betodalas-terraform/infra/environments/${{ github.base_ref == 'main' && 'prod' || 'dev' }}
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.terraform == 'true'
       - uses: hashicorp/setup-terraform@v3
+        if: needs.changes.outputs.terraform == 'true'
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: Configure AWS credentials
+        if: needs.changes.outputs.terraform == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_TERRAFORM_PLAN_ROLE_ARN }}
           role-session-name: github-actions-terraform-plan-${{ github.base_ref }}
       - name: Terraform init
+        if: needs.changes.outputs.terraform == 'true'
         run: terraform init -backend-config=backend.hcl -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
       - name: Terraform format check
+        if: needs.changes.outputs.terraform == 'true'
         working-directory: betodalas-terraform/infra
         run: terraform fmt -check -recursive
       - name: Terraform validate
+        if: needs.changes.outputs.terraform == 'true'
         run: terraform validate
       - name: Terraform plan
+        if: needs.changes.outputs.terraform == 'true'
         env:
           TF_VAR_github_repo: ${{ github.repository }}
         run: terraform plan -lock=false -no-color -out=tfplan 2>&1 | tee plan.txt
       - name: Comment plan on pull request
+        if: needs.changes.outputs.terraform == 'true'
         uses: actions/github-script@v7
         env:
           PLAN_FILE: ${{ github.workspace }}/betodalas-terraform/infra/environments/${{ github.base_ref == 'main' && 'prod' || 'dev' }}/plan.txt
@@ -88,6 +96,7 @@ jobs:
             if (existing) await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
             else await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
       - name: Upload plan
+        if: needs.changes.outputs.terraform == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.base_ref }}-${{ github.run_id }}
