@@ -7,4 +7,4 @@ resources:
 images:
   - name: hello-app
     newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-app
-    newTag: defaefbe292de0d803658d1c5e9b880ec124797d
+    newTag: d93b2f30a8de104bb5cd3bab35179ab901b17df0
