@@ -3,6 +3,12 @@ kind: Application
 metadata:
   name: hello-app
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: hello-app=207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-app
+    argocd-image-updater.argoproj.io/hello-app.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-creds
+    argocd-image-updater.argoproj.io/write-back-target: kustomization
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
