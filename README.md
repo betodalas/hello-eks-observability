@@ -12,6 +12,8 @@ Este projeto provisiona um EKS econômico e entrega a aplicação pelo GitOps:
   deploy automaticamente; para aplicações novas, o workflow abre um Pull
   Request com os manifests iniciais.
 
+![Arquitetura: Load Balancer na subnet pública, EKS na subnet privada com Karpenter, Argo CD e a aplicação](./docs/images/arquitetura-eks.png)
+
 ## Fluxo de entrega
 
 1. **Bootstrap da infraestrutura (Terraform, via GitHub Actions).** O
