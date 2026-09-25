@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-teste
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: hello-teste=207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-teste
+    argocd-image-updater.argoproj.io/hello-teste.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-creds
+    argocd-image-updater.argoproj.io/write-back-target: kustomization
+    # kustomization.yaml's images[].name is the short alias "hello-teste", not the
+    # full ECR path used above. Without this, write-back matches by the full
+    # image name and appends a second (ineffective) images entry instead of
+    # updating the existing one's newTag.
+    argocd-image-updater.argoproj.io/hello-teste.kustomize.image-name: hello-teste
+    argocd-image-updater.argoproj.io/git-branch: main
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/betodalas/hello-eks-observability.git
+    targetRevision: main
+    path: gitops/apps/hello-teste
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hello-teste
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
