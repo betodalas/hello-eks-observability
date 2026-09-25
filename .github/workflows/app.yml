@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - ".github/workflows/app.yml"
   workflow_dispatch:
 
 permissions:
@@ -44,6 +45,7 @@ jobs:
         run: |
           sed -i "s/newTag: .*/newTag: ${IMAGE_TAG}/" gitops/apps/hello-app/kustomization.yaml
       - name: Create GitOps pull request
+        id: gitops-pr
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -56,3 +58,9 @@ jobs:
             Update the hello-app GitOps image tag to `${{ github.sha }}`.
 
             This pull request was created automatically by the application build workflow.
+      - name: Enable GitOps pull request auto-merge
+        if: steps.gitops-pr.outputs.pull-request-url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.gitops-pr.outputs.pull-request-url }}
+        run: gh pr merge --auto --squash "$PR_URL"
