@@ -8,6 +8,11 @@ metadata:
     argocd-image-updater.argoproj.io/hello-app.update-strategy: newest-build
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-creds
     argocd-image-updater.argoproj.io/write-back-target: kustomization
+    # kustomization.yaml's images[].name is the short alias "hello-app", not the
+    # full ECR path used above. Without this, the write-back matches by the full
+    # image name and appends a second (ineffective) images entry instead of
+    # updating the existing one's newTag.
+    argocd-image-updater.argoproj.io/hello-app.kustomize.image-name: hello-app
     argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
