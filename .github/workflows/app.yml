@@ -58,9 +58,3 @@ jobs:
             Update the hello-app GitOps image tag to `${{ github.sha }}`.
 
             This pull request was created automatically by the application build workflow.
-      - name: Enable GitOps pull request auto-merge
-        if: steps.gitops-pr.outputs.pull-request-url != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ steps.gitops-pr.outputs.pull-request-url }}
-        run: gh pr merge --auto --squash "$PR_URL"
