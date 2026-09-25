@@ -23,9 +23,32 @@ jobs:
       apps: ${{ steps.detect.outputs.apps }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          apps=$(find app -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | jq -R -s -c 'split("\n")[:-1]')
+          all_apps() {
+            find app -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort
+          }
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Manual run: building all applications."
+            changed=$(all_apps)
+          elif [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
+            echo "No usable previous commit (new branch or force-push); building all applications."
+            changed=$(all_apps)
+          else
+            echo "Diffing $BEFORE_SHA..${{ github.sha }} to find changed applications."
+            changed=$(git diff --name-only "$BEFORE_SHA" "${{ github.sha }}" -- app \
+              | awk -F/ '{print $2}' | sort -u)
+            # Only keep names that still exist as app directories.
+            changed=$(comm -12 <(all_apps) <(echo "$changed"))
+          fi
+
+          apps=$(printf '%s\n' "$changed" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "Detected apps: ${apps}"
           echo "apps=${apps}" >> "$GITHUB_OUTPUT"
 
