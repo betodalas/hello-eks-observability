@@ -57,14 +57,15 @@ spec:
 ---
 # argocd-image-updater v1.x moved to a CRD-based model: the controller no longer
 # scans Applications for argocd-image-updater.argoproj.io/* annotations unless an
-# ImageUpdater CR tells it to. This CR keeps using the existing annotation-based
-# configuration already set on the hello-app Application.
+# ImageUpdater CR tells it to. namePattern is a glob, so "*" matches every
+# Application in the argocd namespace (one per app under gitops/apps/<app>),
+# regardless of which apps exist at any given time.
 apiVersion: argocd-image-updater.argoproj.io/v1alpha1
 kind: ImageUpdater
 metadata:
-  name: hello-app
+  name: apps
   namespace: argocd
 spec:
   applicationRefs:
-    - namePattern: hello-app
+    - namePattern: "*"
       useAnnotations: true
