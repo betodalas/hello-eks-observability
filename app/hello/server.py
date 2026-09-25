@@ -20,7 +20,7 @@ class Handler(BaseHTTPRequestHandler):
             body = ("\n".join(lines) + "\n").encode()
         else:
             REQUESTS_BY_CODE[200] += 1
-            body = b"Hello from hello teste de novo!\n"
+            body = b"Hello from hello - testando o canary rollout!\n"
 
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4")
@@ -30,4 +30,3 @@ class Handler(BaseHTTPRequestHandler):
 
 
 HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
-# trigger canary 1790351173
