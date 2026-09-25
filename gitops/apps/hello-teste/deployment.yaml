@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-teste
+  labels:
+    app.kubernetes.io/name: hello-teste
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hello-teste
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hello-teste
+    spec:
+      containers:
+        - name: hello-teste
+          image: hello-teste:7b6f10f37118879b7561f3f83d2c42244f666e51
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 64Mi }
