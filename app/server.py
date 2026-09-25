@@ -19,7 +19,7 @@ class Handler(BaseHTTPRequestHandler):
                 f"hello_app_requests_total {REQUESTS}\n"
             ).encode()
         else:
-            body = b"Hello from EKS with Argo CD!\n"
+            body = b"Hello from the new application deployed through GitHub Actions and Argo CD!\n"
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4")
         self.send_header("Content-Length", str(len(body)))
