@@ -1,23 +1,25 @@
+from collections import defaultdict
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-
-REQUESTS = 0
+# Contagem de requisições por status HTTP, usada pelo AnalysisTemplate do
+# Argo Rollouts pra decidir se promove ou aborta um canary automaticamente.
+REQUESTS_BY_CODE = defaultdict(int)
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        global REQUESTS
-        REQUESTS += 1
-
         if self.path == "/healthz":
             body = b"ok\n"
         elif self.path == "/metrics":
-            body = (
-                "# HELP hello_requests_total Total HTTP requests\n"
-                "# TYPE hello_requests_total counter\n"
-                f"hello_requests_total {REQUESTS}\n"
-            ).encode()
+            lines = [
+                "# HELP hello_requests_total Total HTTP requests by status code",
+                "# TYPE hello_requests_total counter",
+            ]
+            for code, count in sorted(REQUESTS_BY_CODE.items()):
+                lines.append(f'hello_requests_total{{code="{code}"}} {count}')
+            body = ("\n".join(lines) + "\n").encode()
         else:
+            REQUESTS_BY_CODE[200] += 1
             body = b"Hello from hello teste de novo e de novo!\n"
 
         self.send_response(200)
