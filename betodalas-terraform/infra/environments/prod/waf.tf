@@ -6,7 +6,7 @@
 
 resource "aws_wafv2_web_acl" "alb" {
   name        = "${local.name}-alb"
-  description = "WAF do ALB publico (aws-load-balancer-controller)"
+  description = "WAF do ALB publico - aws-load-balancer-controller"
   scope       = "REGIONAL"
 
   default_action {
