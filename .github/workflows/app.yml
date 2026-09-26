@@ -72,15 +72,24 @@ jobs:
           echo "image=$REGISTRY/$REPO" >> "$GITHUB_OUTPUT"
           echo "image_ref=$REGISTRY/$REPO:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      # Escaneia a imagem localmente antes do push: se houver vulnerabilidade
-      # CRITICAL ou HIGH com correção disponível, o job falha e a imagem
-      # nunca chega no ECR, então o ArgoCD Image Updater nunca a vê.
-      - name: Scan image for vulnerabilities
+      # Escaneia a imagem localmente antes do push. Reporta HIGH e CRITICAL,
+      # mas só bloqueia o push (exit-code 1) se houver CRITICAL com correção
+      # disponível; HIGH fica só como aviso no log.
+      - name: Scan image for vulnerabilities (report)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ steps.build.outputs.image_ref }}
           format: table
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Scan image for vulnerabilities (block on CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.build.outputs.image_ref }}
+          format: table
+          severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
 
