@@ -20,7 +20,7 @@ class Handler(BaseHTTPRequestHandler):
             body = ("\n".join(lines) + "\n").encode()
         else:
             REQUESTS_BY_CODE[200] += 1
-            body = b"Hello from hello - testando o canary rollout!\n"
+            body = b"Hello from hello - testando o canary rollout333333!\n"
 
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4")
