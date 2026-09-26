@@ -61,7 +61,7 @@ jobs:
               --image-scanning-configuration scanOnPush=true \
               --encryption-configuration encryptionType=AES256
           fi
-      - name: Build and push image
+      - name: Build image
         id: build
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
@@ -69,8 +69,34 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build --tag "$REGISTRY/$REPO:$IMAGE_TAG" "app/${{ matrix.app }}"
-          docker push "$REGISTRY/$REPO:$IMAGE_TAG"
           echo "image=$REGISTRY/$REPO" >> "$GITHUB_OUTPUT"
+          echo "image_ref=$REGISTRY/$REPO:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      # Escaneia a imagem localmente antes do push. Reporta HIGH e CRITICAL,
+      # mas só bloqueia o push (exit-code 1) se houver CRITICAL com correção
+      # disponível; HIGH fica só como aviso no log.
+      - name: Scan image for vulnerabilities (report)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.build.outputs.image_ref }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Scan image for vulnerabilities (block on CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.build.outputs.image_ref }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push image
+        env:
+          IMAGE_REF: ${{ steps.build.outputs.image_ref }}
+        run: docker push "$IMAGE_REF"
 
       # Aplicações já existentes em gitops/apps/<nome> não precisam de mais nada:
       # o ArgoCD Image Updater detecta a nova tag no ECR e atualiza o Kubernetes

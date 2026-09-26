@@ -6,6 +6,9 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    # Substitua pelo output `waf_web_acl_arn` do Terraform após o apply (o ARN
+    # inclui um ID gerado pela AWS, então não é previsível de antemão).
+    alb.ingress.kubernetes.io/wafv2-acl-arn: <WAF_WEB_ACL_ARN>
 spec:
   ingressClassName: alb
   rules:

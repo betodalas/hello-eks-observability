@@ -83,6 +83,20 @@ terraform -chdir=betodalas-terraform/infra/environments/prod output \
   karpenter_controller_role_arn
 ```
 
+O ALB de cada aplicação já sobe protegido por um WAFv2 (WebACL regional com
+`AWSManagedRulesCommonRuleSet` + rate limit por IP, definida em
+`betodalas-terraform/infra/environments/<env>/waf.tf`). O AWS Load Balancer
+Controller associa a Web ACL ao ALB via annotation
+`alb.ingress.kubernetes.io/wafv2-acl-arn`. Como o ARN da WebACL contém um ID
+gerado pela AWS, substitua o placeholder `<WAF_WEB_ACL_ARN>` em
+`gitops/apps/hello/ingress.yaml` e `gitops/apps/hello-canary/ingress.yaml`
+pelo output Terraform:
+
+```bash
+terraform -chdir=betodalas-terraform/infra/environments/prod output \
+  waf_web_acl_arn
+```
+
 No painel do Argo CD, crie a Application inicial `platform` com:
 
 | Campo | Valor |
