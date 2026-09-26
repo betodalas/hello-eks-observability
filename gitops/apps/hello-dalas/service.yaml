@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-dalas
+  labels:
+    app.kubernetes.io/name: hello-dalas
+spec:
+  selector:
+    app.kubernetes.io/name: hello-dalas
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
