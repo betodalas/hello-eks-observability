@@ -40,11 +40,11 @@ spec:
             retention: 2h
             resources:
               requests:
-                cpu: 30m
-                memory: 128Mi
+                cpu: 100m
+                memory: 512Mi
               limits:
-                cpu: 150m
-                memory: 256Mi
+                cpu: 500m
+                memory: 1Gi
         alertmanager:
           enabled: false
         kubeControllerManager:
