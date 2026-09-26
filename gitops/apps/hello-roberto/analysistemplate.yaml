@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: hello-success-rate
+spec:
+  args:
+    # Preenchido automaticamente pelo Rollout com o hash do ReplicaSet
+    # canary, pra medir métricas só dos pods novos, não do stable.
+    - name: canary-hash
+  metrics:
+    - name: success-rate
+      # 5 medições de 30s (2m30s no total) antes de decidir.
+      count: 5
+      interval: 30s
+      successCondition: result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.kube-system.svc:9090
+          query: |
+            (
+              sum(rate(hello_requests_total{code="200", namespace="hello", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+              /
+              sum(rate(hello_requests_total{namespace="hello", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+            )
+            OR on() vector(1)
+            # Sem tráfego real na janela, a divisão não retorna série (den=0)
+            # e o "OR on() vector(1)" preenche com 1 (aprova por padrão). Com
+            # tráfego real, prevalece a taxa de sucesso calculada de fato.
