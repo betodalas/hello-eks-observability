@@ -29,3 +29,8 @@ output "karpenter_instance_profile_name" {
   description = "Instance profile usado pelo Karpenter para os nós provisionados."
   value       = aws_iam_instance_profile.karpenter.name
 }
+
+output "waf_web_acl_arn" {
+  description = "ARN da Web ACL do WAFv2 a ser referenciada na annotation alb.ingress.kubernetes.io/wafv2-acl-arn dos Ingress."
+  value       = aws_wafv2_web_acl.alb.arn
+}
