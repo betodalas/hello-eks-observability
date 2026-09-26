@@ -76,7 +76,7 @@ jobs:
       # mas só bloqueia o push (exit-code 1) se houver CRITICAL com correção
       # disponível; HIGH fica só como aviso no log.
       - name: Scan image for vulnerabilities (report)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.32.0
         with:
           image-ref: ${{ steps.build.outputs.image_ref }}
           format: table
@@ -85,7 +85,7 @@ jobs:
           exit-code: "0"
 
       - name: Scan image for vulnerabilities (block on CRITICAL)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.32.0
         with:
           image-ref: ${{ steps.build.outputs.image_ref }}
           format: table
