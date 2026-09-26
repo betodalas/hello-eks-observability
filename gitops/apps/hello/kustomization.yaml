@@ -9,4 +9,4 @@ resources:
 images:
   - name: hello
     newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello
-    newTag: 70573cc06ff0d4a3556af5f2bec337d0bb6d43ba
+    newTag: 9802237078314f0a3d226d51845c2dde799a0f13
