@@ -23,9 +23,42 @@ jobs:
       apps: ${{ steps.detect.outputs.apps }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
         run: |
-          apps=$(find app -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | jq -R -s -c 'split("\n")[:-1]')
+          all_apps() {
+            find app -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort
+          }
+
+          changed_apps() {
+            git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- app .github/workflows/app.yml
+          }
+
+          # workflow_dispatch não tem "before" pra comparar; build manual
+          # dispara todas as apps. Se o próprio workflow mudou, também builda
+          # tudo, já que a mudança pode afetar o build de qualquer app.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] \
+            || [ -z "$BEFORE_SHA" ] \
+            || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            echo "Building all apps (dispatch manual, primeiro push ou histórico indisponível)"
+            list=$(all_apps)
+          else
+            changed_files=$(changed_apps)
+            if echo "$changed_files" | grep -qx ".github/workflows/app.yml"; then
+              echo "Workflow do build mudou; buildando todas as apps"
+              list=$(all_apps)
+            else
+              list=$(echo "$changed_files" | awk -F/ '$1=="app" && NF>1 {print $2}' | sort -u)
+            fi
+          fi
+
+          apps=$(printf '%s\n' "$list" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "Detected apps: ${apps}"
           echo "apps=${apps}" >> "$GITHUB_OUTPUT"
 
@@ -76,18 +109,20 @@ jobs:
       # mas só bloqueia o push (exit-code 1) se houver CRITICAL com correção
       # disponível; HIGH fica só como aviso no log.
       - name: Scan image for vulnerabilities (report)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.build.outputs.image_ref }}
+          version: v0.70.0
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "0"
 
       - name: Scan image for vulnerabilities (block on CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.build.outputs.image_ref }}
+          version: v0.70.0
           format: table
           severity: CRITICAL
           ignore-unfixed: true
