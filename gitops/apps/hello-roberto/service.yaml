@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: hello
+  name: hello-roberto
   labels:
-    app.kubernetes.io/name: hello
+    app.kubernetes.io/name: hello-roberto
 spec:
   selector:
-    app.kubernetes.io/name: hello
+    app.kubernetes.io/name: hello-roberto
   ports:
     - name: http
       port: 80

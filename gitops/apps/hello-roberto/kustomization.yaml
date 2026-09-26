@@ -7,6 +7,6 @@ resources:
   - servicemonitor.yaml
   - analysistemplate.yaml
 images:
-  - name: hello
-    newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello
+  - name: hello-roberto
+    newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-roberto
     newTag: 70573cc06ff0d4a3556af5f2bec337d0bb6d43ba

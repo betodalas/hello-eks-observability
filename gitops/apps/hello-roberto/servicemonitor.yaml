@@ -1,16 +1,16 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: hello
+  name: hello-roberto
   labels:
-    app.kubernetes.io/name: hello
+    app.kubernetes.io/name: hello-roberto
     # kube-prometheus-stack só descobre ServiceMonitors com este label
     # (release = nome da Application/Helm release "monitoring").
     release: monitoring
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: hello
+      app.kubernetes.io/name: hello-roberto
   # Propaga o label que o Argo Rollouts coloca nos pods (identifica canary x
   # stable) pras métricas coletadas, pra o AnalysisTemplate conseguir filtrar
   # só os pods do canary.

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
-  name: hello-success-rate
+  name: hello-roberto-success-rate
 spec:
   args:
     # Preenchido automaticamente pelo Rollout com o hash do ReplicaSet
@@ -19,9 +19,9 @@ spec:
           address: http://monitoring-kube-prometheus-prometheus.kube-system.svc:9090
           query: |
             (
-              sum(rate(hello_requests_total{code="200", namespace="hello", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+              sum(rate(hello_roberto_requests_total{code="200", namespace="hello-roberto", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
               /
-              sum(rate(hello_requests_total{namespace="hello", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+              sum(rate(hello_roberto_requests_total{namespace="hello-roberto", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
             )
             OR on() vector(1)
             # Sem tráfego real na janela, a divisão não retorna série (den=0)

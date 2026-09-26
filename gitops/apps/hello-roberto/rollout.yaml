@@ -1,16 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: hello
+  name: hello-roberto
   labels:
-    app.kubernetes.io/name: hello
+    app.kubernetes.io/name: hello-roberto
 spec:
   # 2 réplicas para que a divisão canary (setWeight) tenha efeito real:
   # com 1 réplica só, não há como rotear uma fração do tráfego pro canary.
   replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: hello
+      app.kubernetes.io/name: hello-roberto
   strategy:
     canary:
       # Sem trafficRouting: o split de tráfego é aproximado, proporcional à
@@ -24,7 +24,7 @@ spec:
         # automaticamente pro próximo step — sem gate manual.
         - analysis:
             templates:
-              - templateName: hello-success-rate
+              - templateName: hello-roberto-success-rate
             args:
               - name: canary-hash
                 valueFrom:
@@ -33,11 +33,11 @@ spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: hello
+        app.kubernetes.io/name: hello-roberto
     spec:
       containers:
-        - name: hello
-          image: hello:eb6002abcbac7d3fda42e6c7631efca36490666f
+        - name: hello-roberto
+          image: hello-roberto:eb6002abcbac7d3fda42e6c7631efca36490666f
           ports:
             - name: http
               containerPort: 8080
