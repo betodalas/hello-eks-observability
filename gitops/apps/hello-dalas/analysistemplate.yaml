@@ -19,9 +19,9 @@ spec:
           address: http://monitoring-kube-prometheus-prometheus.kube-system.svc:9090
           query: |
             (
-              sum(rate(hello_dalas_requests_total{code="200", namespace="hello-dalas", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+              sum(rate(hello_requests_total{code="200", namespace="hello-dalas", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
               /
-              sum(rate(hello_dalas_requests_total{namespace="hello-dalas", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
+              sum(rate(hello_requests_total{namespace="hello-dalas", rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
             )
             OR on() vector(1)
             # Sem tráfego real na janela, a divisão não retorna série
