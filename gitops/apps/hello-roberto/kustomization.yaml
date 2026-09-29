@@ -9,4 +9,4 @@ resources:
 images:
   - name: hello-roberto
     newName: 207131866724.dkr.ecr.us-east-1.amazonaws.com/hello-observability-prod/hello-roberto
-    newTag: ed86713edd2c3a232928a85886c00b4e040d76ec
+    newTag: 46bfd74f4a2988693d66805cb29c6d5fd9796c18
